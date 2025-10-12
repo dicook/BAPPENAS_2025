@@ -52,6 +52,14 @@ install.packages(c("ggplot2",
                    dependencies=c("Depends", "Imports"))
 ```
 
+## Resources
+
+- Wickham, Cetinskaya-Rundell, Grolemund (2023) [R for Data Science (2e)](https://r4ds.hadley.nz)
+- [tidymodels website](https://www.tidymodels.org)
+- [Wilke (2019) Fundamentals of Data Visualization](https://clauswilke.com/dataviz/)
+- [Happy Git and GitHub for the useR](https://happygitwithr.com)
+
+
 Copyright: Dianne Cook 2025
 
 These materials are licensed under a
