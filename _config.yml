@@ -1,9 +1,17 @@
 theme: jekyll-theme-minimal
 title: "BAPPENAS Masterclass - Working with big data"
-logo: /assets/monash-logo-blue.png
+logo: /assets/monash-shield.png
 
 # Appearance
 google_fonts: "Open Sans:400,600"
+
+# Socials (optional)
+social_links:
+  - name: Website
+    url: https://dicook.org
+  - name: Bluesky
+    icon: assets/bluesky-blue-round-circle-logo-24461.svg
+    url: https://bsky.app/profile/visnut.bsky.social
 
 # Optional inline style
 head_scripts:
