@@ -1,0 +1,41 @@
+---
+title: "Working with big data"
+title-slide-attributes: 
+  data-background-image: "images/bg.png"
+  data-background-size: 100%
+subtitle: "Session 5: Interactive and dynamic graphics"
+author: "Professor Di Cook"
+institute: "Department of Econometrics and Business Statistics"
+footer: "[BAPPENAS Masterclass - Day 4 Session 1](https://dicook.github.io/BAPPENAS_2025/)"
+format:
+  revealjs:
+    multiplex: false
+    slide-number: c/t
+    slide-tone: false
+    theme: "assets/monash.scss"
+    width: 1600
+    height: 900
+    margin: 0.05
+    embed-resources: true
+---
+
+```{r, include = FALSE}
+# Load libraries 
+source("libraries.R")
+
+# Set up chunk for all slides
+source("chunk_options_and_themes.R")
+```
+
+
+## Resources
+
+- plotly
+- gganimate
+- crosstalk
+
+::: bottom
+<span style="display:inline-block;"><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a></span><span style="display:inline-block;"> This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.</span>
+:::
+
+

@@ -1,0 +1,1947 @@
+---
+title: "Working with big data"
+title-slide-attributes: 
+  data-background-image: "images/bg.png"
+  data-background-size: 100%
+subtitle: "Session 2: Data wrangling, and visualisation"
+author: "Professor Di Cook"
+institute: "Department of Econometrics and Business Statistics"
+footer: "[BAPPENAS Masterclass - Day 3 Session 2](https://dicook.github.io/BAPPENAS_2025/)"
+format:
+  revealjs:
+    multiplex: false
+    slide-number: c/t
+    slide-tone: false
+    theme: "assets/monash.scss"
+    width: 1600
+    height: 900
+    margin: 0.05
+    embed-resources: true
+---
+
+```{r, include = FALSE}
+# Load libraries 
+source("libraries.R")
+
+# Set up chunk for all slides
+source("chunk_options_and_themes.R")
+```
+
+## dplyr verbs
+
+There are five primary dplyr **verbs**, representing distinct data analysis tasks:
+
+- `filter`: Extract specified rows of a data frame
+- `arrange`: Reorder the rows of a data frame
+- `select`: Select specified columns of a data frame
+- `mutate`: Add new or transform a column of a data frame
+- `summarise`: Create collapsed summaries of a data frame
+- (`group_by`: Introduce structure to a data frame)
+ 
+ 
+## Filter
+
+select a subset of the observations (horizontal selection)
+
+```{r select_a_subset_of_the_observations}
+#| code-line-numbers: "3"
+load(here::here("data/french_fries.rda"))
+french_fries |>
+    filter(subject == 3, time == 1) #<<
+ff_long <- french_fries |> pivot_longer(potato:painty, names_to = "type", values_to = "rating")
+```
+
+## Arrange
+
+order the observations (hierarchically)
+
+```{r order the observations}
+#| code-line-numbers: "2"
+french_fries |>
+    arrange(desc(rancid)) |> #<<
+    head()
+```
+
+## Select
+
+select a subset of the variables (vertical selection)
+```{r select a subset of the variables}
+#| code-line-numbers: "2"
+french_fries |>
+    select(time, treatment, subject, rep, potato) |> #<<
+    head()
+```
+
+## Summarise
+
+summarize observations into a (set of) one-number statistic(s):
+```{r summarize observations into one-number statistic}
+#| code-line-numbers: "2,5"
+french_fries |>
+    summarise( #<<
+      mean_rancid = mean(rancid, na.rm=TRUE), 
+      sd_rancid = sd(rancid, na.rm = TRUE)
+      ) #<<
+```
+
+## Summarise and group_by
+
+```{r summarise and group_by}
+french_fries |>
+    group_by(time, treatment) |>
+    summarise(mean_rancid = mean(rancid), sd_rancid = sd(rancid))
+```
+
+
+
+## Let's use these tools
+
+to answer these french fry experiment questions:
+
+- Is the design complete?
+- Are replicates like each other? 
+- How do the ratings on the different scales differ?
+- Are raters giving different scores on average?
+- Do ratings change over the weeks?
+
+## Completeness 
+
+- If the data is complete it should be 12 x 10 x 3 x 2, that is, 6 records for each person in each week. 
+
+- To check: tabulate  number of records for each subject, time and treatment. 
+
+## Work through this
+
+How many values do we have for each subject? Check the help for function `?n`
+
+## French Fries - completeness
+
+`n()`
+
+```{r checking design completeness}
+french_fries |> 
+  group_by(subject) |> 
+  summarize(n = n()) 
+```
+
+## Other nice short cuts 
+
+instead of `group_by(subject) |> summarize(n = n())` we can use:
+
+- `group_by(subject) |> tally()`
+- `count(subject)`
+
+## Counts for subject by time
+
+```{r counts for subject by time}
+french_fries |>
+  na.omit() |>
+  count(subject, time) |>
+  pivot_wider(names_from="time", values_from="n")
+```
+
+## How do scores change over time?
+
+::: panel-tabset
+### Code{-}
+
+```{r do-scores-change-over-time, fig.show='hide'}
+ggplot(data=ff_long, aes(x=time, y=rating, colour=treatment)) +
+  geom_point() +
+  facet_grid(subject~type) 
+```
+
+### Plot {-}
+```{r ref.label="do-scores-change-over-time", echo=FALSE, fig.width=12, fig.height=9, out.width="80%"}
+```
+
+:::
+
+## Work through this
+
+Get summary of ratings over replicates and connect the dots for a picture as below:
+
+```{r echo=FALSE, fig.width=12, fig.height=9, out.width="60%"}
+ff_av <- ff_long |> 
+  group_by(subject, time, type, treatment) |>
+  summarise(rating=mean(rating))
+
+ggplot(data=ff_long, aes(x=time, y=rating, colour=treatment)) + 
+  facet_grid(subject~type) +
+  geom_line(data=ff_av, aes(group=treatment))
+```
+
+## Cleaning {.transition-slide .center style="text-align: center;"}
+
+## Material from 5521 XXX
+
+## What is a data plot? {.smaller}
+
+- data
+- **aesthetics: mapping of variables to graphical elements**
+- geom: type of plot structure to use
+- transformations: log scale, ...
+- layers: multiple geoms, multiple data sets, annotation
+- facets: show subsets in different plots
+- themes: modifying style
+
+## Why?
+
+- With the grammar, a data plot becomes a **statistic**.     
+    
+- It is a functional mapping from variable to graphical element. Then we can do statistics on charts!    
+    
+- With a grammar, we don't have individual animals in the zoo, we have the genetic code that says how one plot is related to another plot.
+
+## Elements of the grammar
+
+::: columns
+::: {.column width="50%"}
+
+<img src="images/ggplot2.png" width="20%" />
+
+```
+ggplot(data = <DATA>) + 
+  <GEOM_FUNCTION>(
+     mapping = aes(<MAPPINGS>),
+     stat = <STAT>, 
+     position = <POSITION>
+  ) +
+  <COORDINATE_FUNCTION> +
+  <FACET_FUNCTION>
+```
+
+:::
+::: {.column .tightlist width="50%"}
+
+7 key elements:
+
+- **DATA**
+- **GEOM_FUNCTION**
+- **MAPPINGS**
+- STAT
+- POSITION
+- COORDINATE_FUNCTION
+- FACET_FUNCTION
+:::
+:::
+
+## Example: Tuberculosis data
+
+(Current) TB case notifications data from [WHO](http://www.who.int/tb/country/data/download/en/).    
+Also available via R package [`getTBinR`](https://github.com/seabbs/getTBinR). 
+
+```{r}
+#| label: read-and-wrangle-TB-data
+#| echo: false
+tb <- readr::read_csv(here::here("data/TB_notifications_2025-07-22.csv")) |>
+  dplyr::select(country, iso3, year, new_sp_m04:new_sp_fu) |>
+  pivot_longer(new_sp_m04:new_sp_fu, names_to="stuff", values_to="count") |>
+  separate(stuff, c("stuff1", "stuff2", "sexage")) |>
+  dplyr::select(-stuff1, -stuff2) |>
+  mutate(sex=substr(sexage, 1, 1), 
+         age=substr(sexage, 2, length(sexage))) |>
+  dplyr::select(-sexage)
+
+# Filter data to get the US
+tb_ind <- tb |> 
+  filter(iso3 == "IND") |>
+  filter(!(age %in% c("04", "014", "514", "u"))) |>
+  mutate(
+    age_group = factor(age, labels = c("15-24", "25-34", "35-44", "45-54", "55-64", "65+"))
+  )
+```
+
+```{r}
+#| label: make-a-barchart-of-US-TB-incidence
+#| echo: true
+#| out-width: 80%
+#| fig-width: 10
+#| fig-height: 3
+ggplot(tb_ind, aes(x = year, 
+                  y = count, 
+                  fill = sex)) +
+  geom_bar(stat = "identity") +
+  facet_grid(~ age) 
+```
+
+
+- What do you learn about tuberculosis incidences in Indonesia from this plot?
+- Give three changes to the plot that would improve it. 
+
+
+## Fix the plot
+
+Manually selected fill colors; theme with white background for better contrast
+
+```{r}
+#| label: colour-and-axes-fixes
+#| echo: true
+#| fig-height: 3
+#| code-line-numbers: "5,6"
+# This uses a color blind friendly scale
+ggplot(tb_ind, aes(x=year, y=count, fill=sex)) +
+  geom_bar(stat="identity") + 
+  facet_grid(~age_group)  + 
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) + 
+  theme_bw() 
+```
+
+[[Color deficiency friendly color schemes](https://davidmathlogic.com/colorblind/#%23005AB5-%23DC3220)]{.bottom}
+
+## Compare males and females
+
+```{r}
+#| label: compare-proportions-of-males-females
+#| out-width: 80%
+#| fig-height: 3
+#| code-line-numbers: "3,4"
+#| echo: true
+ggplot(tb_ind, aes(x=year, y=count, fill=sex)) +  
+  geom_bar(stat="identity", position="fill") + 
+  ylab("proportion") + 
+  facet_grid(~age_group) +  
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) 
+```
+
+## TWO MINUTE CHALLENGE 
+
+- What do we learn about the data that is different from the previous plot?
+- What is easier and what is harder or impossible to learn from this arrangement?
+
+::: notes
+- Focus is now on proportions of male and female each year, within age group
+- Proportions are similar across year 
+- Roughly equal proportions at young and old age groups, more male incidence in middle years
+
+:::
+
+## Separate plots
+
+<!-- ```{r} -->
+<!-- #| label: side-by-side-bars-of-males-females -->
+<!-- #| fig-height: 3 -->
+<!-- #| echo: false -->
+<!-- #| include: false -->
+<!-- ggplot(tb_ind, aes(x=year, y=count, fill=sex)) + -->
+<!--  geom_bar(stat="identity", position="dodge") + #<< -->
+<!--  facet_wrap(~age, ncol=6) + -->
+<!--   scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) +  -->
+<!--  scale_x_continuous("year", breaks=seq(1995, 2012, 5), labels=c("95", "00", "05", "10")) -->
+<!-- ``` -->
+
+
+```{r}
+#| label: compare-counts-of-males-females
+#| out-width: 100%
+#| echo: true
+#| fig-height: 5
+#| code-line-numbers: "5"
+# Make separate plots for males and females, focus on counts by category
+ggplot(tb_ind, aes(x=year, y=count, fill=sex)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) + 
+  facet_grid(sex~age_group) + 
+  theme_bw()
+```
+
+
+::: notes
+- Counts are generally higher for males than females 
+- There are very few female cases in the middle years
+- Perhaps something of a older male outbreak in 2007-8, and possibly a young female outbreak in the same years
+:::
+
+
+## Make a pie
+
+```{r}
+#| label: rose-plot-of-males-females
+#| echo: true
+#| fig-height: 5
+#| code-line-numbers: "6"
+# How to make a pie instead of a barchart - not straight forward
+ggplot(tb_ind, aes(x=year, y=count, fill=sex)) +
+  geom_bar(stat="identity") + 
+  facet_grid(sex~age_group) + 
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) +
+  coord_polar() + 
+  theme_bw()
+```
+
+This isn't a pie, it's a [rose plot](https://datavizcatalogue.com/methods/nightingale_rose_chart.html)!
+
+
+## Stacked bar
+
+```{r}
+#| label: stacked-barchart-of-males-females
+#| echo: true
+#| fig-height: 5
+#| code-line-numbers: "3"
+# Step 1 to make the pie
+ggplot(tb_ind, aes(x = 1, y = count, fill = factor(year))) +
+  geom_bar(stat="identity", position="fill") + 
+  facet_grid(sex~age_group) +
+  scale_fill_viridis_d("", option="inferno") 
+```
+
+## Pie chart
+
+```{r}
+#| label: pie-chart-of-males-females
+#| out-width: 60%
+#| echo: true
+#| fig-height: 5
+#| code-line-numbers: "3,4,7"
+# Now we have a pie, note the mapping of variables
+# and the modification to the coord_polar
+ggplot(tb_ind, aes(x = 1, y = count, fill = factor(year))) + 
+  geom_bar(stat="identity", position="fill") + 
+  facet_grid(sex~age_group) +
+  scale_fill_viridis_d("", option="inferno") +
+  coord_polar(theta = "y") 
+```
+
+## TWO MINUTE CHALLENGE 
+
+- What are the pros, and cons, of using the pie chart for this data?
+- Would it be better if the pies used age for the segments, and facetted by year (and sex)?
+
+
+```{r}
+#| eval: false
+#| out-width: 60%
+#| echo: false
+#| fig-height: 5
+#| code-line-numbers: "1,3"
+# age for segments, facet by year and sex
+ggplot(tb_ind, aes(x = 1, y = count, fill = factor(age_group))) + 
+  geom_bar(stat="identity", position="fill") + 
+  facet_grid(sex~year) + 
+  scale_fill_viridis_d("", option="inferno") +
+  coord_polar(theta = "y") +
+  theme(legend.position="bottom")
+```
+
+
+## Line plot vs barchart
+
+::: {.smaller}
+
+```{r use a line plot instead of bar, fig.height=3, out.width="80%"}
+ggplot(tb_ind, aes(x=year, y=count, colour=sex)) +
+  geom_line() + geom_point() +
+  facet_grid(~age_group) +
+  scale_colour_manual("Sex", values = c("#DC3220", "#005AB5")) +
+  ylim(c(0,NA)) +
+  theme_bw()
+```
+:::
+
+::: {.smaller}
+
+- We can read counts for both sexes
+- Males and females can be directly compared
+- Temporal trend is visible
+:::
+
+
+## Line plot vs barchart
+
+::: {.smaller}
+```{r use a line plot of proportions, fig.height=3, out.width="70%"}
+tb_ind |> group_by(year, age_group) |> 
+  summarise(p = count[sex=="m"]/sum(count)) |>
+  ggplot(aes(x=year, y=p)) +
+  geom_hline(yintercept = 0.50, colour="grey50", linewidth=2) +
+  geom_line() + geom_point() +
+  facet_grid(~age_group) +
+  ylab("Proportion of Males") +
+  theme_bw()
+```
+:::
+
+::: tightlist
+::: {.smaller}
+
+- Attention is forced to proportion of males
+- Direct comparison of counts within year and age
+- Equal proportion guideline provides a baseline for comparison
+
+:::
+:::
+
+## Your turn 
+
+Make sure you can make all the TB plots just shown. If you have extra time, try to:
+
+- Facet by gender, and make line plots of counts of age. 
+- Show the points only, and overlay a linear model fit. 
+
+
+## `gg` extensions
+
+::: {.smaller}
+- There are more than 150 extensions to `ggplot2`
+- Many adhere to the grammar, to define new types of displays, like 
+    - `ggdist`: including representation of uncertainty and error
+    - `gganimate`: specifies animations as layers
+- Others are supporting packages, such as 
+    - `patchwork` for laying out multiple displays
+    - `ggthemes` for styling plots
+    
+:::
+
+[https://exts.ggplot2.tidyverse.org/gallery/](https://exts.ggplot2.tidyverse.org/gallery/)
+
+## `ggdist`
+
+
+:::: {.columns}
+::: {.column width="10%"}
+
+<img src="https://mjskay.github.io/ggdist/logo.svg" width="80%">
+
+:::
+
+::: {.column width="45%"}
+
+::: { .smaller}
+
+```{r}
+#| label: tb-comparisons1
+#| fig-width: 5
+#| fig-height: 4
+tb_inc_100k <- read_csv(here::here("data/TB_burden_countries_2025-07-22.csv")) |>
+  filter(iso3 %in% c("USA", "AUS"))
+ggplot(tb_inc_100k, aes(y = iso3, 
+                        x = e_inc_100k)) +
+  stat_gradientinterval(fill = "darkorange") +
+  ylab("") +
+  xlab("Inc per 100k") +
+  theme_ggdist()
+```
+:::
+:::
+
+::: {.column width="45%"}
+
+::: {.smaller}
+ 
+```{r}
+#| label: tb-comparisons2
+#| fig-width: 5
+#| fig-height: 4
+ggplot(tb_inc_100k, aes(y = iso3, 
+                        x = e_inc_100k)) +
+  stat_halfeye(side = "right") +
+  geom_dots(side="left", 
+                    fill = "darkorange", color = "darkorange") +
+  ylab("") +
+  xlab("Inc per 100k") +
+  theme_ggdist()
+```
+
+:::
+:::
+::::
+
+## Mapping and data {.transition-slide .center style="text-align: center;"}
+
+## Map thinning
+
+## Warping the map to display statistics
+
+cartograms, hexagon tiling
+
+## Plots and statistical inference {.transition-slide .center style="text-align: center;"}
+
+## Tidy data and random variables {.smaller}
+
+
+::: columns
+::: column
+
+- Tidy data mirrors elementary statistics
+- Tabular form puts variables in columns and observations in rows
+- Not all tabular data is in this form
+- In this form, we can think about  $X_1 \sim N(0,1), ~~X_2 \sim \text{Exp}(1) ...$
+:::
+
+::: column
+
+$$\begin{align}X &= \left[ \begin{array}{rrrr}
+           X_1 & X_2 & ... & X_p 
+           \end{array} \right] \\
+  &= \left[ \begin{array}{rrrr}
+           X_{11} & X_{12} & ... & X_{1p} \\
+           X_{21} & X_{22} & ... & X_{2p} \\
+           \vdots & \vdots & \ddots& \vdots \\
+           X_{n1} & X_{n2} & ... & X_{np}
+           \end{array} \right]\end{align}$$
+:::
+:::
+
+## Grammar of graphics and statistics {.smaller}
+
+::: {.incremental}
+
+- A statistic is a function on the values of items in a sample, e.g. for $n$ iid random variates $\bar{X}_1=\displaystyle\sum_{i=1}^n X_{i1}$, $s_1^2=\displaystyle\frac{1}{n-1}\displaystyle\sum_{i=1}^n(X_{i1}-\bar{X}_1)^2$
+- We study the behaviour of the statistic over all possible samples of size $n$. 
+- The grammar of graphics is the mapping of (random) variables to graphical elements, making plots of data into statistics
+
+:::
+
+## What is inference?
+
+
+::: columns
+::: column
+Inferring that what we see in the data at hand holds more broadly in life, society and the world.
+
+
+**Why do we need it for graphics?**
+
+::: smaller
+Here's an example tweeted by David Robinson based on [an analysis in Tick Tock blog](https://ticktocksaythehandsoftheclock.wordpress.com/2018/01/11/capitals-and-good-governance/) by Graham Tierney
+:::
+
+::: 
+::: column
+![[Source](https://x.com/drob/status/958065590941487105)](images/drob_twitter.png){width="100%"}
+
+::: 
+::: notes
+
+From the blog: 
+> I ran linear regressions of government rank on the percentage of each state’s population living in the capital city, state population (in 100,000s), and state GDP (in $100,000s).... The coefficient is not significant for any regression at the traditional 5% level.
+
+- A simple scatterplot of the two variables of interest. 
+- A slight negative slope is observed, but it does not look very large. 
+- There are a lot of states whose capitals are less than 5% of the total population. 
+- The two outliers are Hawaii (government rank 33 and capital population 25%) and Arizona (government rank 26 and capital population 23%). 
+- Without those two the downward trend (an improvement in ranking) would be much stronger.
+
+
+... I'm not convinced that the lack of significance is itself significant.
+:::
+::: 
+
+## To do *statistical* inference
+
+You need a:
+
+- statistic computed from the data
+- null and alternative hypothesis
+- reference distribution on which to measure the statistic
+    - if it is extreme on this scale, reject the null
+
+## Inference with *data plots*
+
+You need a:
+
+::: incremental
+
+- plot description provided by the grammar [(a statistic)]{.blue .fragment}
+    - This implies one or more null hypotheses
+- {{< fa dice >}} null generating mechanism, e.g. permutation, simulation from a distribution or model
+- {{< fa eye >}} visual evaluation: is one plot in the array different?
+
+:::
+
+## Some examples
+
+Here are several plot descriptions.    
+What would be the null hypothesis in each?
+
+```{r}
+#| eval: false
+ggplot(data) + geom_point(aes(x=x1, y=x2))            #  A
+ggplot(data) + geom_point(aes(x=x1, y=x2, colour=cl)) #  B
+ggplot(data) + geom_histogram(aes(x=x1))              #  C
+ggplot(data) + geom_boxplot(aes(x=cl, y=x1))          #  D
+```
+
+Which plot definition would best match    
+[$H_0:$ **there is no difference in the distribution between the groups?**]{.orange}
+
+::: notes
+A - doesn't show by group, so not useful. Would allow testing association between x1, x2 across groups.
+B - could be useful to show differences in mean on (x1, x2) by cl
+C - might allow testing whether distribution of x1 is symmetric
+D - Might show differences in distribution for x1
+:::
+
+## Some examples
+
+Here are several null hypotheses.    
+What type of plot would you use to test each?
+
+
+a. $H_0:$ no association between `x1` and `x2`
+b. $H_0:$ no difference between levels of `cl`
+c. $H_0:$ the distribution of `x1` is XXX
+d. $H_0:$ no difference in the distribution of `x1` b/w levels of `cl`
+
+::: notes
+a. Scatterplot of x = x1, y = x2
+b. Scatterplot of x = x1, y= x2, color = cl
+c. Histogram of x1
+d. violin plot of x1 with different colors
+:::
+
+## Let's do it 
+
+![](images/nullabor_hex.png){.absolute top=30 right=30 width="50px"}
+
+```{r}
+#| label: lineup 1
+#| echo: true
+#| fig-height: 6
+#| fig-width: 6
+#| output-location: "column"
+# Make a lineup of mtcars data
+# 20 plots, one data, 19 nulls
+# Which one is different?
+set.seed(20190709)
+library(ggplot2)
+ggplot(
+  lineup(
+    null_permute('mpg'), 
+    mtcars), 
+  aes(mpg, wt)
+) +
+  geom_point() +
+  facet_wrap(~ .sample)
+```
+
+::: notes
+
+Example from the nullabor package. The data plot is embedded randomly in a field of null plots, this is a **lineup**. Can you see which one is different?
+
+When you run the example yourself, you get a `decrypt` code line, that you run after deciding on a plot to print the location of the data plot amongst the nulls. 
+
+- plot is a scatterplot, null hypothesis is *there is no association between the two variables mapped to the x, y axes*
+- null generating mechanism: permutation
+:::
+
+## Lineup
+::: columns
+::: column
+{{< fa mortar-pestle >}} Mix the data plot    
+into a field of null plots
+
+```{r}
+#| label: embed the data plot in a field of null plots
+#| eval: false
+pos <- sample(1:20, 1)
+df_null <- lineup(
+  null_permute('v1'), 
+  df, pos=pos)
+ggplot(
+  df_null, 
+  aes(x=v2, y=v1, fill=v2)
+) + 
+  geom_boxplot() +
+  facet_wrap(~.sample, ncol=5) + 
+  coord_flip()
+```
+:::
+
+::: column
+
+```{r}
+#| label: penguins-lineup-ex
+#| echo: false
+#| message: false
+#| warning: false
+set.seed(203482093)
+pos <- sample(1:20, 1)
+df_null <- lineup(null_permute('bl'), penguins_nona, pos=pos)
+ggplot(df_null, aes(x=bd, y=bl, fill=species)) + 
+  geom_boxplot() +
+  facet_wrap(~.sample, ncol=5) + coord_flip() + 
+  guides(fill = 'none') +
+  theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank())
+```
+
+Which plot is different?
+:::
+:::
+
+## Null-generating mechanisms
+
+- Permutation: randomizing the order of one of the variables breaks association, but keeps marginal distributions the same
+- Simulation: from a given distribution, or model. Assumption is that the data comes from that model.
+
+### Evaluation
+
+- Compute $p$-value
+- Power $=$ signal strength
+
+
+## p-values
+
+- $K$ independent observers
+- $x$ individuals pick the data plot from $m$ plots
+
+Assuming that all plots in a lineup are equally likely to be selected,
+
+$$P(X\geq x) = \sum_{i=x}^{K} \binom{K}{i} \left(\frac{1}{m}\right)^i\left(\frac{m-1}{m}\right)^{K-i}$$
+
+
+## p-values
+
+$$P(X\geq x) = \sum_{i=x}^{K} \binom{K}{i} \left(\frac{1}{m}\right)^i\left(\frac{m-1}{m}\right)^{K-i}$$
+
+[This is a Binomial model]{.orange}
+
+For $x=4$ picks, $K=17$ observers, $m=20$ plots
+
+```{r}
+#| label: compute pvalue
+library(nullabor)
+pvisual(4, 17, m=20)
+```
+
+
+## p-values
+But... some null plots are more visually salient!
+
+![](images/salient-lineup.png){width="50%"}
+
+
+## p-values
+
+Introduce a parameter $\alpha$: visual salience of null plot dist
+
+$$\begin{align}P(X \geq x) = &\sum_{i = x}^{K} \binom{K}{x} \frac{1}{B(\alpha, (m-1)\alpha)}\times \\ &B(x+\alpha, K-x+(m-1)\alpha),\end{align}$$
+
+where $B(.,.)$ is the Beta function.
+
+[This is a Beta-Binomial mixture model]{.orange}
+
+## p-values
+
+::: tightlist
+- Large $\alpha$: several null plots are 'interesting'
+- $\alpha \approx 0.15$: 1 or 2 null plots are interesting enough to get some picks
+:::
+
+Computing p-values with $\alpha$:
+
+```{r}
+#| label: adjusted for variability in the plots
+library(vinference)
+c("alpha = 0.01" = pVis(4,17,m=20, alpha=0.01, lower.tail=FALSE),
+  "alpha = 0.15" = pVis(4,17,m=20, alpha=0.15, lower.tail=FALSE),
+  "alpha = 1" = pVis(4,17,m=20, alpha=1, lower.tail=FALSE))
+```
+
+
+## Goodness-of-fit  & residuals
+
+- plot is a residual vs fitted scatterplot
+- null hypothesis is *no association between the two statistics*
+- null generating mechanism: residual rotation
+
+```{r}
+#| label: lineup 2
+#| message: false
+#| warning: false
+#| eval: false
+#| fig-height: 6
+# Assessing model fit, using a lineup of residual plots: 19 nulls + 1 resid plot
+# Structure in the residual plot corresponding to less than random variation?
+# Nulls are generated by `rotating` residuals after model fit.
+tips <- read_csv("http://www.ggobi.org/book/data/tips.csv")
+x <- lm(tip ~ totbill, data = tips)
+tips.reg <- data.frame(tips, .resid = residuals(x), .fitted = fitted(x))
+ggplot(lineup(null_lm(tip ~ totbill, method = 'rotate'), tips.reg)) +
+  geom_point(aes(x = totbill, y = .resid)) +
+  facet_wrap(~ .sample)
+```
+
+
+## Goodness-of-fit  & residuals
+
+```{r}
+#| label: lineup 2
+#| message: false
+#| warning: false
+#| echo: false
+#| fig-height: 6
+```
+
+
+## Let's talk TB {.smaller}
+
+```{r}
+#| label: lets talk TB
+#| echo: false
+#| message: false
+#| warning: false
+tb <- read_csv("data/TB_notifications_2025-07-22.csv") |> 
+  select(country, iso3, year, new_sp_m04:new_sp_fu) |>
+  pivot_longer(cols=new_sp_m04:new_sp_fu, names_to="sexage", values_to="count") |>
+  mutate(sexage = str_replace(sexage, "new_sp_", "")) |>
+  mutate(sex=substr(sexage, 1, 1), 
+         age=substr(sexage, 2, length(sexage))) |>
+  select(-sexage)
+
+# Filter years between 1997 and 2012 due to missings
+tb_us <- tb |> 
+  filter(country == "United States of America") |>
+  filter(!(age %in% c("04", "014", "514", "u"))) |>
+  filter(year > 1996, year < 2013)
+```
+
+```{r}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 3
+ggplot(tb_us, aes(x = year, y = count, fill = sex)) +
+  geom_bar(stat = "identity", position = "fill") +
+  facet_grid(~ age) +
+  scale_fill_brewer(palette="Dark2")
+```
+
+Earlier:
+
+- *Across all ages, and years, the proportion of males having TB is higher than females*
+- These proportions tend to be higher in the middle age groups, for all years.
+- Relatively similar proportions occur across years.
+
+## Null hypothesis
+
+Plot count against year, separately for each age group, coloured by sex. 
+
+- Colouring by sex $\Rightarrow$ primary comparison
+- Plot shows [proportion of sex, given age group and year]{.orange}
+
+$H_0$: TB occurs equally among men and women, regardless of age and year.
+
+$H_A$: It doesn't.
+
+## TB Lineup
+
+```{r}
+#| label: generate a lineup of three binomial simulations
+#| echo: true
+# Make expanded rows of categorical variables matching the 
+# counts of aggregated data. Sex needs to be converted to 0, 1
+# to match binomial output.
+tb_us_long <- uncount(tb_us, count)
+tb_us_long <- tb_us_long |>
+  mutate(sex01 = ifelse(sex=="m", 0, 1)) |>
+  select(-sex)
+
+# Generate a lineup of n=3, randomly choose the data position.
+# Compute counts again.
+pos = sample(1:3, 1)
+l <- lineup(null_dist(var="sex01", dist="binom", 
+                      list(size=1, p=0.5)), 
+            true=tb_us_long, n=3, pos=pos)
+l <- l |>
+  group_by(.sample, year, age) |>
+  count(sex01)
+```
+
+## TB Lineup
+
+```{r}
+#| label: tb-lineup-1
+#| eval: false
+#| echo: true
+ggplot(l, aes(x = year, y = n, fill = factor(sex01))) +
+  geom_bar(stat = "identity", position = "fill") +
+  facet_grid(.sample ~ age) +
+  scale_fill_brewer(palette="Dark2") + 
+  theme(legend.position="none")
+```
+
+## TB Lineup
+
+```{r}
+#| label: tb-lineup-1
+#| echo: false
+#| fig-height: 6
+#| fig-width: 10
+```
+
+## A more complicated null
+
+$H_0$: Rates are the same across sex, regardless of age and year.    
+$H_A$: They aren't.
+
+```{r}
+#| label: a more complicated null
+#| echo: true
+#| code_copy: false
+tbl <- tb_us |> group_by(sex) |> summarise(count=sum(count)) # <1>
+tbl # <1>
+p <- tbl$count[1]/sum(tbl$count) # <1>
+
+pos = sample(1:3, 1) # <2>
+l <- lineup(null_dist(var="sex01", dist="binom",  # <2>
+                      list(size=1, p=p)),  # <2>
+            true=tb_us_long, n=3, pos=pos) # <2>
+l <- l |> # <3>
+  group_by(.sample, year, age) |>  # <3>
+  count(sex01)  # <3>
+```
+1. Compute proportion across all data
+2. Create lineup, with null data sampled from a Binomial() distribution with the sample proportion as $p$
+3. Compute aggregate results 
+
+## TB Lineup
+
+```{r}
+#| label: tb-lineup-2
+#| eval: false
+#| echo: true
+ggplot(l, aes(x = year, y = n, fill = factor(sex01))) +
+  geom_bar(stat = "identity", position = "fill") +
+  facet_grid(.sample ~ age) +
+  scale_fill_brewer(palette="Dark2") + 
+  theme(legend.position="none")
+```
+
+## TB Lineup
+
+```{r}
+#| label: tb-lineup-2
+#| echo: false
+#| fig-height: 6
+#| fig-width: 10
+```
+
+## Danger zone {.inverse}
+
+- $H_0$ is determined based on the plot type
+
+- $H_0$ is not based on the structure seen in the data set
+
+- Null data creation method does not match characteristics of original sample other than that in $H_0$
+
+## A map lineup example {.smaller}
+
+Does one map show a spatial trend?
+
+```{r}
+#| label: make a map lineup
+#| fig-height: 6
+#| fig-width: 16
+#| fig-cap: 'Cancer incidence across the US 2010-2014, Melanoma cases per 100k. [Data
+#|   source: American Cancer Society](https://cancerstatisticscenter.cancer.org).'
+# Read xlsx spreadsheet on cancer incidence in USA, for a more
+# complex lneup example, a lineup of maps
+load("data/fifty_states.rda")
+incd <- read_xlsx("data/IncRate.xlsx", skip=6, sheet=2) |>
+  filter(!(State %in% c("All U.S. combined", "Kansas"))) |>
+  select(State, `Melanoma of the skin / Both sexes combined`) |>
+  rename(Incidence=`Melanoma of the skin / Both sexes combined`) |>
+  mutate(Incidence = as.numeric(substr(Incidence, 1, 3)))
+
+# State names need to coincide between data sets
+incd <- incd |> mutate(State = tolower(State))
+
+# Choose a position 
+pos <- 6
+
+# Make lineup of cancer incidence
+incd_lineup <- lineup(null_permute('Incidence'), incd, n=18, pos=pos)
+
+# Join cancer incidence data to map polygons
+incd_map <- left_join(fifty_states, filter(incd_lineup, .sample==1),
+                      by=c("id"="State"))
+for (i in 2:18) {
+  x <- left_join(fifty_states, filter(incd_lineup, .sample==i),
+                      by=c("id"="State"))
+  incd_map <- bind_rows(incd_map, x)
+}
+# Remove Kansas - it was missing the cancer data
+incd_map <- incd_map |> filter(!is.na(.sample))
+
+# Plot the maps as a lineup
+ggplot(incd_map) + 
+  geom_polygon(aes(x=long, y=lat, fill = Incidence, group=group)) + 
+  expand_limits(x = incd_map$long, y = incd_map$lat) +
+  coord_map() +
+  scale_x_continuous(breaks = NULL) + 
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  scale_fill_viridis_b(option = "D") + 
+  theme(legend.position = "none", 
+        panel.background = element_blank()) +
+  facet_wrap(~.sample, ncol=6)
+```
+
+## Your turn {.smaller}
+![](images/cookie-monster.jpg){.absolute width="12%" top=0 right=0}
+
+::: columns
+::: column
+
+1. run this code, 
+2. look at **your** lineup (and only your lineup)
+3. choose a plot
+4. run the `decrypt` line
+5. calculate `x` for your group
+6. use the `pvisual` function to compute the p-value, `K=` group size, `m=18`
+7. Try different $\alpha$ values with `pVis` - how much difference does it make?
+
+::: {.content-visible when-format="revealjs"}
+`r countdown::countdown(5)`
+:::
+
+::: 
+::: column
+```{r}
+#| eval: false
+#| echo: true
+data(wasps)
+lda_pred <- function(x) {
+  d <- predict(lda(Group~., 
+                   data=x[,-43]))$x[,1:2] |>
+  as_tibble() |>
+  mutate(Group = x$Group)
+  return(d)
+}
+wasps_lineup <- lineup(null_permute('Group'), 
+                       wasps[,-1], n=12) |>
+  as_tibble()
+wasps_lineup_lda <- wasps_lineup |>
+  split(.$.sample) |>
+  map_df(~lda_pred(.)) |>
+  mutate(.sample = wasps_lineup$.sample)
+ggplot(wasps_lineup_lda, aes(x=LD1, y=LD2, 
+                             colour=Group)) + 
+  geom_point() +
+  facet_wrap(~.sample, ncol=4) +
+  scale_colour_brewer(palette="Dark2") +
+  theme(legend.position="none")
+```
+::: 
+::: 
+
+## Perceptual principles {.transition-slide .center style="text-align: center;"}
+
+## Game: Which plot wears it better? {.smaller}
+
+:::: columns
+::: column
+
+```{r read TB data and wrangle and subset to Indonesia, echo = FALSE}
+tb <- read_csv("data/TB_notifications_2025-07-22.csv") |> 
+  dplyr::select(country, iso3, year, new_sp_m04:new_sp_fu) |>
+  pivot_longer(cols=new_sp_m04:new_sp_fu, names_to="sexage", values_to="count") |>
+  mutate(sexage = str_replace(sexage, "new_sp_", "")) |>
+  mutate(sex=substr(sexage, 1, 1), 
+         age=substr(sexage, 2, length(sexage))) |>
+  dplyr::select(-sexage)
+
+# Filter years between 1997 and 2012 due to missings
+tb_kn <- tb |> 
+  filter(country == "Indonesia") |>
+  filter(!(age %in% c("04", "014", "514", "u"))) |>
+  filter(!is.na(count)) |>
+  mutate(age = str_replace(age, "(\\d{2})(\\d{2})", "\\1-\\2") |>
+           str_replace("65", "65+"))
+```
+
+Coming up: **2 different plots** of 2012 TB incidence (e.g. newly diagnosed cases) in Kenya, based on variables:
+
+```{r}
+tb_kn |> 
+  filter(year == 2012) |> 
+  dplyr::select(sex, age, count) |>
+  head()
+```
+:::
+::: column
+
+- In arrangement A, separate plots are made for age, and sex is mapped to the x axis. 
+- Conversely, in arrangement B, separate plots are made for sex, and age is mapped to the x axis. 
+
+
+> [At which age(s) are the counts for males and females relatively the same?]{.orange} 
+
+Which plot makes this question easier to answer?
+
+:::
+::::
+
+::: notes
+
+We're going to start out with an example of why perception and effective plot construction are related. 
+
+I will show you two different plots of the same data -- newly diagnosed TB cases in Kenya in 2012 -- with variables sex, age, and count (# diagnosed cases). 
+
+In the first plot, you'll see facets for each age, with sex on the x-axis and count on the y-axis.
+
+In the second plot, you'll see separate facets for sex, with age on the x-axis and count on the y-axis. 
+
+Your goal is to figure out which plot is better for identifying which ages had approximately the same numbers of males and females diagnosed with TB. 
+
+Ready?
+
+:::
+
+::: {layout-ncol=2}
+
+```{r focus on one year gender side-by-side bars of males females, fig.height=3, echo=FALSE}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=sex, y=count, fill=sex)) +
+  geom_bar(stat="identity", position="dodge") + 
+  facet_wrap(~age, ncol=6) +
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) +
+  ggtitle("Arrangement A")
+```
+
+```{r focus on one year age side-by-side bars of age group, fig.height=3, echo=FALSE}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=age, y=count, fill=age)) +
+  geom_bar(stat="identity", position="dodge") + 
+  facet_wrap(~sex, ncol=6) +
+  scale_fill_brewer("", palette="Dark2") +
+  ggtitle("Arrangement B")
+```
+:::
+
+[At which age(s) are the counts relatively similar across sex?]{.orange} 
+
+Which plot makes this easier? 
+What do we learn from each? What's the focus? What's easy? What's harder? 
+
+::: notes
+
+Take two minutes and answer the main question, but also think about what you might use each plot for, and what each plot's focus is.
+
+- Arrangement A makes it easier to directly compare male and female counts, separately for each age group.
+    - Generally, male counts are higher than female counts. 
+    - There is a big difference between counts in the 25-34 age group, and over 65 counts are almost the same.
+- Arrangement B makes it easier to directly compare counts by age group, separately, for females and males. 
+    - For females, incidence drops in the middle years much more strongly than it does for males. 
+
+:::
+
+## TWO MINUTE CHALLENGE 
+
+:::: columns
+::: column
+
+Write out a question that would be easier to answer from arrangement B.
+
+:::
+::: column
+
+<div style='position: relative; padding-bottom: 56.25%; padding-top: 35px; height: 0; overflow: hidden;'><iframe sandbox='allow-scripts allow-same-origin allow-presentation' allowfullscreen='true' allowtransparency='true' frameborder='0' height='315' src='https://www.mentimeter.com/embed/c7464477c3f1274f23886cf21c41ec89/ad3e75b80c75' style='position: absolute; top: 0; left: 0; width: 100%; height: 100%;' width='420'></iframe></div>
+
+:::
+::::
+
+::: {layout-ncol=2}
+
+```{r ref.label='focus on one year gender side-by-side bars of males females', fig.height=3, echo=F}
+```
+
+```{r ref.label='focus on one year age side-by-side bars of age group', fig.height=3, echo=F}
+```
+
+:::
+
+::: notes
+
+What question would be easier to answer from arrangement B?
+
+:::
+
+## Three Variables {.smaller}
+
+:::: columns
+::: column
+Next, we have **two different plots** of TB incidence in Kenya, based on three variables:
+
+```{r}
+tb_kn |> select(year, sex, age, count) |> head(10)
+```
+:::
+
+::: column
+- In plot type A, a line plot of counts is drawn separately by age and sex, and year is mapped to the x axis. 
+- Conversely, in plot type B, counts for sex, and age are stacked into a bar chart, separately by age and sex, and year is mapped to the x axis
+
+[Is the trend for females generally decreasing over time?]{.orange} Which plot makes this easier? 
+:::
+::::
+
+::: notes
+
+Let's make this just a bit harder by adding another variable - age. 
+
+We'll have two plots again 
+
+- the first plot will be a line chart, with facets by age and separate lines drawn for males and females.
+- the second plot will be a stacked bar chart, with facets by age. The counts for females will be shown on top of the counts for males.
+
+Your goal is to determine which chart makes it easier to identify the direction of the trend for females. 
+
+:::
+
+::: {layout-ncol=2}
+
+```{r use a line plot instead of bar 2, fig.height=3, echo = F}
+ggplot(tb_kn, aes(x=year, y=count, colour=sex)) +
+  geom_line() + geom_point() +
+  facet_wrap(~age, ncol=6) +
+  scale_color_manual(
+    "Sex", 
+    values = c("#DC3220", "#005AB5")) +
+  ggtitle("Type A")
+```
+
+```{r colour and axes fixes, fig.height=3, echo = F}
+# This uses a color blind friendly scale
+ggplot(tb_kn, aes(x=year, y=count, fill=sex)) +
+  geom_bar(stat="identity") + 
+  facet_wrap(~age, ncol=6) +
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) +
+  ggtitle("Type B")
+```
+:::
+
+Which type of plot makes it easier to answer  
+
+> [Is the trend for females generally decreasing over time?]{.orange}
+
+
+::: notes
+
+- Plot type A makes it easier to examine trend for each group. 
+    - This plot should probably have used 0 as the lower limit.
+- Plot type  B is really only allowing the overall trend in count to be examined separately by age. 
+    - It is possible to see trend for males. 
+    - Trend for females is buried because the bars start at irregular heights. 
+    - The separated bars distract a bit from digesting the overall count. 
+    
+:::
+
+## TWO MINUTE CHALLENGE 
+
+What are the pros and cons of each way of displaying the same information? Should specific limits on axes be made?
+
+Should the limits of the y axis in plot A include 0 (zero)? 
+
+::: {layout-ncol=2}
+
+```{r ref.label='use a line plot instead of bar', fig.height=3, echo = F}
+```
+
+```{r ref.label='colour and axes fixes', fig.height=3, echo = F}
+```
+:::
+
+
+::: notes
+
+- Plot type A makes it easier to examine trend for each group. 
+    - This plot should probably have used 0 as the lower limit.
+- Because plot B shows bars, 0 is automatically included.
+- It might be helpful to have plot B with different scales by facet, if our goal is to be able to see any trend at all for older age groups.
+    - This would be useful alongside the plot with the same axes for all facets, not instead of that plot. 
+
+:::
+
+## TWO MINUTE CHALLENGE 
+
+Plot A shows the proportion as a line plot.     
+Plot B shows stacked bars scaled to 100% for females and males. 
+
+> [Is there an age effect in the proportion of incidence by gender? Is there a temporal trend in the proportions?]{.orange}
+
+
+::: {layout-ncol=2}
+
+```{r use a line plot for proportions, fig.height=3, echo = F}
+tb_kn |> group_by(year, age) |> 
+  summarise(p = count[sex=="m"]/sum(count)) |>
+  ggplot(aes(x=year, y=p)) +
+  geom_hline(yintercept = 0.50, colour="grey70", size=2) +
+  geom_line() + geom_point() +
+  facet_wrap(~age, ncol=6) +
+  ylab("proportion of males") +
+  ggtitle("Type A")
+```
+
+```{r compare proportions of males females, fig.height=4, echo = F}
+# Fill the bars, note the small change to the code
+ggplot(tb_kn, aes(x=year, y=count, fill=sex)) +
+  geom_bar(stat="identity", position="fill") + 
+  facet_wrap(~age, ncol=6) +
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) + ylab("proportion") +
+  ggtitle("Type B") + theme(legend.position = "bottom")
+```
+:::
+
+::: notes
+
+- Plot A makes it easier to examine the trend in proportion. 
+  - It is easy to miss that all the proportions are greater than 0.5, despite having a guideline (grey) at 0.5. 
+    - It could be argued that setting the vertical axis limits could alleviate this.  
+  - The fluctuations from year to year are more visible.
+    - Maybe adding a trend model could be helpful, to reduce this noise. 
+  - Without colour, the plot is less visually appealing.
+- Plot B makes it easier to see that the proportion for males is almost always higher than for females. 
+  - It also suggests that there is a very minor temporal trend, because the small fluctuations between years is less visible. 
+  - Having colour makes it more visually appealing. 
+  - There is less data processing.
+  
+:::
+
+## Perceptual principles
+
+- Hierarchy of mappings
+- Pre-attentive: some elements are noticed before you even realise it.
+- Color palettes: qualitative, sequential, diverging.
+- Proximity: Place elements for primary comparison close together. 
+- Change blindness: When focus is interrupted differences may not be noticed.
+
+::: notes
+
+In the plots we just discussed, there were several perceptual principles at play:
+
+- There is a hierarchy of mappings between variables and geometric objects
+
+- Perception happens in a sequence: some things are perceived without attention, and others require attention and intentional focus.
+
+- Color palettes (or lack thereof) can make a big difference in how we perceive the data!
+
+- It's helpful to have things we want to compare next to each other -- proximity matters
+
+- If we have to pivot between different facets of a chart, it's harder to see any differences in the data
+
+:::
+
+## Hierarchy of mappings
+
+:::: columns
+::: {.column width="60%"}
+
+1. Position - common scale (BEST)
+2. Position - nonaligned scale
+3. Length, direction, angle
+4. Area
+5. Volume, curvature
+6. Shading, color (WORST)
+
+[(Cleveland, 1984; Heer and Bostock, 2009)]{.smaller}
+
+:::
+
+::: {.column width="40%"}
+![](images/list_of_plots.png)
+:::
+::::
+
+::: notes
+
+The hierarchy of mappings is drawn primarily from research by Cleveland & McGill in the 1980s on basic perception. 
+
+It's important to know that this hierarchy applies to **estimation accuracy**, but not necessarily to speed, accuracy of the "gist" of the plot, or relative magnitude judgments. 
+
+It's much easier to compare aligned quantities -- think of two bars placed next to each other, where the bottom is aligned to the axis - you're essentially just comparing the position of the top of the bar. 
+When the bars are no longer aligned, as in a stacked bar chart, it's a bit harder to estimate the size of the bar correctly -- this is one example of a nonaligned scale; another would be making comparisons between facets that don't share a scale. 
+
+Then comes a 3-way tie between length, angle, and direction -- these are easy enough to *see*, but not as easy to estimate the magnitude.
+
+As we increase the dimensionality of the geometric object, we lose accuracy -- area is less accurate than length, and volume is less accurate than area. 
+This is one really good reason not to add extra dimensions to your bar charts (looking at you, MS Excel!)
+
+Finally, we have color and shading. Remember, this is for estimation accuracy -- color and shading are both useful, but it's much harder to get an exact numerical estimate from the legend. 
+Sometimes, people add a third dimension to a plot using color, and this hierarchy should tell you that if you're going to do that, you want to use the least important numerical variable to show using color... save the important ones for the $x$ and $y$ axes, which use position. 
+
+:::
+
+## TWO MINUTE CHALLENGE 
+
+Come up with a plot type for each of the mappings.
+
+:::: columns
+::: {.column .smaller .tightlist width="60%"}
+
+1. Position - common scale (BEST)
+2. Position - nonaligned scale
+3. Length, direction, angle
+4. Area
+5. Volume, curvature
+6. Shading, color (WORST)
+
+[(Cleveland, 1984; Heer and Bostock, 2009)]{.smaller}
+
+:::
+
+::: {.column width="40%"}
+![](images/list_of_plots.png)
+:::
+::::
+
+::: notes
+
+Take a couple of minutes and come up with a chart that uses each type of mapping
+
+
+1. scatterplot, barchart
+2. side-by-side boxplot, stacked barchart
+3. piechart, rose plot, gauge plot, donut, wind direction map, starplot
+4. treemap, bubble chart, mosaicplot
+5. chernoff face
+6. choropleth map
+
+:::
+
+## Color palettes 
+
+:::: columns
+::: column
+```{r show different types of color palettes, fig.height=7, fig.width=12, echo=TRUE, fig.show='hide'}
+display.brewer.all()
+```
+
+- Sequential, 
+- Diverging, 
+- Qualitative
+
+[Color Brewer](http://colorbrewer2.org/#type=sequential&scheme=BuGn&n=3) annotates palettes with attributes.
+
+:::
+::: column
+```{r ref.label='show different types of color palettes', fig.height=7, fig.width=12}
+```
+
+:::
+::::
+
+::: notes
+
+Next, we should talk about color -- when to use it, what type of scale you should use for different types of variables, and how to ensure that your audience can perceive your color scale.
+
+The colorbrewer project is helpful, because it provides some useful scales as well as attributes for those scales. 
+It's good to realize that these attributes apply to maps -- they may work well enough for other types of charts, but they may not. Everything has limitations.
+
+Colorbrewer helpfully divides their palettes into different types: 
+
+- Sequential, a scale that increases the saturation (amount of color) to show magnitude
+- Diverging, a scale that has two directions of saturation, shown using different hues. This type of scale is useful for showing e.g. temperature, deviation from the mean, etc., where the direction is just as relevant as the value.
+- Qualitative scales are used for categorical variables. With qualitative scales, it's important to keep the number of categories low enough that we can remember what color matches what value. 
+
+:::
+
+## Sequential 
+
+:::: columns
+::: column
+
+```{r mapping numbers to rainbow sequential scale, echo=TRUE, fig.width=7, fig.height=4}
+dsamp <- diamonds |>
+  sample_n(1000)
+(d <- ggplot(
+  dsamp, aes(carat, price)) +
+  geom_point(aes(
+    colour = clarity)))
+```
+:::
+
+::: column
+
+- Emphasize one side of the spectrum
+
+- `viridis` package palette
+    - maps to uniform grey scale
+
+:::
+::::
+
+::: notes
+
+Quantitative values should be mapped to a directional scale indicating high or low  -- which direction will depend on what is important for your data.
+
+If you want to use a quantitative scheme that is multi-hued, you can use the `viridis` palette to do so: the schemes in that package will reduce to greyscale in black and white -- as a result, they also happen to be much more safe for colorblind people.
+
+In this case, we have an ordered categorical variable mapped to color -- clarity. The categories are ordered according to the clarity of the stone, with I1 being worst and IF being best.
+
+:::
+
+## Sequential
+
+```{r mapping numbers to sequential scale, echo=TRUE, fig.width=7, fig.height=4}
+d + scale_colour_brewer(direction = -1)
+```
+
+- Default brewer sequential scale, blues. 
+
+- Focus is on the dark blue. 
+
+::: notes
+
+Quantitative values should be mapped to a directional scale indicating high or low  -- which direction will depend on what is important for your data.
+
+Here, I've mapped the dark blue to the lower clarity, with the idea that clear and white are similar. This does put the focus on the lower-clarity diamonds, though. 
+:::
+
+## Diverging
+
+```{r mapping numbers to diverging scale, echo=TRUE, fig.width=7, fig.height=4, out.width="60%"}
+d + scale_colour_brewer(palette="PRGn")
+```
+
+- Emphasize both ends, high AND low
+- De-emphasize middle
+
+::: notes
+If we want to put the focus on both ends of the spectrum, we can use a diverging scale, like this purple-green scale. 
+
+When you use a diverging scale, the safest is actually purple to orange through a very light color like white -- this is accessible to all major types of colorblindness.
+:::
+
+## Qualitative
+
+```{r mapping numbers to qualitative palette, echo=TRUE, , fig.width=7, fig.height=4, out.width="60%"}
+d + scale_colour_brewer(palette="Set1")
+```
+
+Map qualitative variables to most differentiated set of colors. 
+
+It's possible to have too many colours to perceive differences.
+
+::: notes
+
+Your working memory is limited to 7 plus-or-minus 2 items - between 5 and 9 things. You run up against this when you try to remember a phone number after looking it up but before typing it in -- an unfamiliar area code can really make that task difficult because it puts you up to 10 items to remember.
+
+When we have more than 9 categories, it makes it hard to remember what color corresponds to what value... it can also make the legend really big. 
+It can be helpful to have an "other" category that you group smaller values into, if you're mostly interested in the main categories. 
+
+:::
+
+## TWO MINUTE CHALLENGE 
+
+Of the previous four colour schemes on the same data, which would be the most appropriate? Why?
+
+- `viridis`
+- `ColorBrewer` sequential `Blues`
+- `ColorBrewer` Diverging `PRGn`
+- `ColorBrewer` Categorical `Set1`
+
+## Color blind-proofing
+
+```{r using the dichromat package to check color blind appearance, echo=TRUE, eval = F}
+clrs <- hue_pal()(9)
+d + theme(legend.position = "none")
+
+clrs <- dichromat(hue_pal()(9))
+d + 
+  scale_colour_manual("", values=clrs) + 
+  theme(legend.position = "none")
+```
+
+- Online checking tool [coblis](https://www.color-blindness.com/coblis-color-blindness-simulator/): upload an image and it will re-map the colors for different colour perception issues. 
+- The package `colorblind` has color blind friendly palettes    [(Susan: but the colours are awful `r emo::ji("sob")`).]{.smaller}
+
+::: notes
+
+There are colorblindness simulators, but I've never found one that actually matches what I see, because there are many different mutations that can cause color deficiency, and so it exists along a spectrum for each of the 3 cones we have.
+
+Roughly 5% of the population (10% of men, 0.2% of women) are colorblind. 
+
+The `viridis` package claims to be colorblind friendly. The `colorblind` package has some color deficiency friendly palettes, but they can be a bit ugly. 
+
+Whatever route you go, the safest way to make something colorblind-friendly is to make it so you could show it in greyscale with no issues. 
+This also helps with publishing and not having to pay for color figures, as well as lowering printing costs in the office if you are working with hard copies.
+
+:::
+
+
+## Color blind simulation
+
+:::: columns
+::: column
+Original colours
+
+```{r show the default colour scheme, echo=FALSE, fig.width=4, fig.height=4, out.width="100%"}
+clrs <- hue_pal()(9)
+p1 <- d + theme(legend.position = "none") + scale_color_discrete()
+p1
+```
+:::
+::: column
+Color blind view
+
+```{r show the dichromat adjusted colors, echo=FALSE, fig.width=4, fig.height=4, out.width="100%"}
+clrs <- dichromat(hue_pal()(9))
+p2 <- d + scale_color_manual("", values=clrs) + theme(legend.position = "none")
+
+p2
+```
+:::
+::::
+
+::: notes
+
+This is what the default discrete color scale in ggplot2 apparently looks like if you do not have a functioning green cone. Not so great, right? You can basically see direction but not much more. 
+
+:::
+
+
+## Pre-attentive
+
+Can you find the odd one out?
+
+```{r is shape preattentive, echo=FALSE, fig.width=4, fig.height=4}
+set.seed(20190715)
+df <- data.frame(x=runif(100), y=runif(100), cl=sample(c(rep("A", 1), rep("B", 99))))
+ggplot(data=df, aes(x, y, shape=cl)) + theme_bw() + 
+  geom_point(size=3) +
+  theme(legend.position="None", aspect.ratio=1, axis.text = element_blank(), axis.ticks=element_blank(), axis.title = element_blank()) 
+```
+
+## Pre-attentive
+
+Is it easier now?
+
+```{r is color preattentive, echo=FALSE, fig.width=4, fig.height=4}
+ggplot(data=df, aes(x, y, colour=cl)) + 
+  geom_point(size=3) +
+  theme_bw() + 
+  scale_colour_brewer(palette="Set1") +
+  theme(legend.position="None", aspect.ratio=1, axis.text = element_blank(), axis.ticks=element_blank(), axis.title = element_blank()) 
+```
+
+::: notes
+
+Some features, like shape and color, are processed pre-attentively - you don't have to look at every point to see which one doesn't match. This is parallel processing at work, and when you can take advantage of it, you should.
+
+A combination of pre-attentive features that are used to encode different variables must be processed serially -- you have to look at each point separately. So make sure you take advantage of this, but don't get greedy!
+
+Dual-encoding points by using both shape and color to show the same variable can make your plots more accessible and easier to read.
+
+:::
+
+## Proximity
+
+Place elements that you want to compare close to each other. 
+If there are multiple comparisons to make, you need to decide which one is most important.
+
+::: {layout-ncol=2}
+
+```{r a line plot on sex, fig.height=3, fig.width = 8, echo = F}
+ggplot(tb_kn, aes(x=year, y=count, colour=sex)) +
+  geom_line() + geom_point() +
+  facet_wrap(~age, ncol=6) +
+  scale_color_manual("Sex", values = c("#DC3220", "#005AB5"))  +
+  ggtitle("Arrangement A")
+```
+
+```{r a line plot on age, fig.height=3, fig.width=8, echo = F}
+ggplot(tb_kn, aes(x=year, y=count, colour=age)) +
+  geom_line() + geom_point() +
+  facet_wrap(~sex, ncol=6) +
+  scale_colour_brewer("", palette="Dark2") +
+  ggtitle("Arrangement B")
+```
+:::
+
+::: notes
+
+Earlier, we demonstrated the importance of proximity for making comparisons -- when you design your chart, put the most important things close to each other so that they're easy to compare. If you want the viewer to compare sex effects, then use arrangement A. If it's more important for the viewer to  compare age effects, use B. 
+
+You do have to pick, but you can also make multiple charts to illustrate different aspects of the data.
+:::
+
+## Mapping and proximity
+
+:::: columns
+::: column
+Same proximity is used, but different geoms. 
+
+- Which is better to determine the relative ratios of males to females by age?
+:::
+::: column
+```{r side-by-side bars of males females, fig.height=3, echo = F}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=sex, y=count, fill=sex)) +
+  geom_bar(stat="identity", position="dodge") + 
+  facet_wrap(~age, ncol=6) +
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5"))  +
+  ggtitle("Position - common scale ")
+```
+
+```{r piecharts of males females, fig.height=3, echo = F}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=1, y=count, fill=sex)) +
+  geom_bar(stat="identity", position="fill") + 
+  facet_wrap(~age, ncol=6) +
+  scale_fill_manual("Sex", values = c("#DC3220", "#005AB5")) +
+  ggtitle("Angle") + xlab("") + ylab("") +
+  coord_polar(theta = "y")
+```
+:::
+::::
+
+::: notes
+
+Geom is also important. Which plot works better for showing relative ratios of male/female for each age group?
+
+We could probably achieve the same effect by using a stacked bar chart -- pie charts use angle or area, while stacked bars use length. 
+:::
+
+## Mapping and proximity
+
+:::: columns
+::: column
+Same proximity is used, but different geoms. 
+
+Which is better to determine the relative ratios of ages by sex?
+:::
+
+::: column
+```{r side-by-side bars of age, fig.height=3, echo = F}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=age, y=count, fill=age)) +
+  geom_bar(stat="identity", position="dodge") + 
+  facet_wrap(~sex, ncol=6) +
+  scale_fill_brewer("", palette="Dark2") +
+  ggtitle("Position - common scale ")
+```
+
+```{r piecharts of age, fig.height=3, echo = F}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=1, y=count, fill=age)) +
+  geom_bar(stat="identity", position="fill") + 
+  facet_wrap(~sex, ncol=6) +
+  scale_fill_brewer("", palette="Dark2") +
+  ggtitle("Angle") + xlab("") + ylab("") +
+  coord_polar(theta = "y")
+```
+
+```{r stacked bars of age, fig.height=3, echo = F}
+tb_kn |> filter(year == 2012) |>
+  ggplot(aes(x=1, y=count, fill=age)) +
+  geom_bar(stat="identity", position="fill") + 
+  facet_wrap(~sex, ncol=6) +
+  scale_fill_brewer("", palette="Dark2") +
+  ggtitle("Position - nonaligned") + xlab("") + ylab("")
+```
+:::
+::::
+
+::: notes
+
+While pie charts can be useful when there are just 2 categories, that advantage disappears very quickly when the number of categories increases. 
+Once you need to compare more than 3 categories, a stacked (or not stacked) bar chart will provide a better comparison. 
+:::
+
+## Change blindness
+
+```{r facetting plots can result in change blindness, echo=TRUE, out.width="50%", fig.width=6.5, fig.height=3.5}
+ggplot(dsamp, aes(x=carat, y=price, colour = clarity)) +
+  geom_point() +
+  geom_smooth(se=FALSE) +
+  scale_color_brewer(palette="Set1") +
+  facet_wrap(~clarity, ncol=4)
+```
+
+Which has the steeper slope, VS1 or VS2?
+
+::: notes
+
+When you have to move around the chart and aren't making side-by-side comparisons, it gets pretty hard to see differences!
+
+This is what we mean by change blindness. 
+
+When possible place important comparisons next to each other.
+When not possible, provide a common point of reference for comparison. 
+
+:::
+
+## Change blindness
+
+:::: columns
+::: column
+Making comparisons across plots requires the eye to jump from one focal point to another. 
+
+It may result in not noticing differences. 
+:::
+
+::: column
+
+```{r averlaying makes comparisons easier, echo=TRUE, out.width="100%", fig.width=7, fig.height=4}
+ggplot(dsamp, aes(x=carat, y=price, 
+                  colour = clarity)) +
+  geom_point() +
+  geom_smooth(se=FALSE) +
+  scale_color_brewer(palette="Set1") 
+```
+:::
+::::
+
+::: notes
+When you have to move around the chart and aren't making side-by-side comparisons, it gets pretty hard to see differences!
+
+This is what we mean by change blindness. 
+
+It's much easier to see that the purple line is more shallow.
+:::
+
+## Core principles 
+
+- Make a plot of your **data**! 
+    - The hierarchy matters if the structure is weak or differences b/w groups are small. 
+- Knowing how to use proximity is a valuable and rare skill
+- Use of colour: don't over use 
+    - Too many colours
+    - Mapping cts variable to colour to add another dimension
+
+## Core principles 
+
+- Show the data! 
+    - Statistics are good if there's too much data
+    - Always plot the data for yourself to see the variability
+- One plot is never enough
+    - Plot the data in different ways
+    - Understand the relationships between variables
+
+## Uncertainty representation {.transition-slide .center style="text-align: center;"}
+
+## ggdibbler?
+
+
+## Your turn 
+
+This builds on the exercise from the previous session.
+
+- Using your choice of country, for example, Australia, make a set of plots to explore the TB incidence among males relative to females over different age groups for 2012.
+- Choose your best plot to answer this question: [Is there a higher prevalence of TB among younger women in 2012?]{.orange}
+
+## Resources
+
+- [R for Data Science (2e)](https://r4ds.hadley.nz)
+- [ggplot2: Elegant Graphics for Data Analysis, Hadley Wickham](https://ggplot2-book.org)
+- [ggplot2 web site](https://ggplot2.tidyverse.org)
+- [R Graphics Cookbook, Winston Chang](http://www.cookbook-r.com/Graphs/)
+- [Data Visualization, Kieran Healy](https://socviz.co)
+- [Data Visualization with R, Rob Kabacoff](https://rkabacoff.github.io/datavis/index.html)
+- [Fundamentals of Data Visualization, Claus O. Wilke](https://serialmentor.com/dataviz/)
+- [Naomi Robbins, Creating More Effective Graphs](http://www.nbr-graphs.com)
+- [Cleveland, McGill (1984) Graphical perception: Theory, experimentation](https://www.tandfonline.com/doi/abs/10.1080/01621459.1984.10478080)
+- [Heer, Bostock (2010) Crowdsourcing graphical perception](http://vis.stanford.edu/files/2010-MTurk-CHI.pdf)
+- [Antony Unwin, Graphical Data Analysis with R](https://www.crcpress.com/Graphical-Data-Analysis-with-R/Unwin/9781498715232)
+- Wickham, H., Cook, D., Hofmann, H. and Buja, A. (2010) Graphical Inference for Infovis,  [http://doi.ieeecomputersociety.org/10.1109/TVCG.2010.161](http://doi.ieeecomputersociety.org/10.1109/TVCG.2010.161). 
+- Hofmann, H., Follett, L., Majumder, M. and Cook, D. (2012) Graphical Tests for Power Comparison of Competing Designs, [http://doi.ieeecomputersociety.org/10.1109/TVCG.2012.230](http://doi.ieeecomputersociety.org/10.1109/TVCG.2012.230).
+
+
+::: bottom
+<span style="display:inline-block;"><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a></span><span style="display:inline-block;"> This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.</span>
+:::
+
+

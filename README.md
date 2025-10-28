@@ -21,12 +21,12 @@ We assume some familiarity with R, and will teach using R and Rstudio.
 
 | Session | topic | description |
 |------:|:-------|:-------|
-| 1  | Tidy data | This session covers identifying data as in tidy format, and how to wrangle it into tidy form if not. |
-| 2  | Grammatically specifying data plots | Here we learn how to script plots of data using a grammar to make good visualisations.|
-| 3  | Tidy models | Extending the notion of tidy data to models provides a cleaner way to think about the process of prediction and interpretation. |
-| 4  | Statistical inference for data visualisation | We often make decisions on the basis of what is seen in plots. Here we describe the process of of defining plots using a grammar helps to build statistical inference into interoreting data visualisations. |
+| 1  | Introduction, tidy data analysis and workflow | This session covers key principles for handling large, complex datasets and tools, e.g. identifying data as in tidy format, or not, data cleaning and integration and how to build a robust workflow, that enables collaborative data analysis and reproducible reporting. |
+| 2  | Data wrangling, and visualisation | From data in tidy form to elegant graphics, using a grammar to make good visualisations, and identifying patterns and communicating evidence.|
+| 3  | Statistical modeling and machine learning | Extending the notion of tidy data to models provides a cleaner way to think about the process of prediction and interpretation. |
+| 4  | Application 1 | Working with Indonesian economic data. |
 | 5  | Interactive and dynamic graphics | Here we learn how to visualise data beyond two dimensions, to assess relationships between many variables. |
-| 6  | Workflow | How do you build a robust workflow, that enables collaborative data analysis and reproducible reporting. |
+| 6  | Application 2 | Working with spatial and temporal data for Indonesia. |
 
 ## Getting started
 
@@ -58,7 +58,7 @@ install.packages(c("ggplot2",
 - [tidymodels website](https://www.tidymodels.org)
 - [Wilke (2019) Fundamentals of Data Visualization](https://clauswilke.com/dataviz/)
 - [Happy Git and GitHub for the useR](https://happygitwithr.com)
-
+- [The Turing Way](https://book.the-turing-way.org/)
 
 Copyright: Dianne Cook 2025
 

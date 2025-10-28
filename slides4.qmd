@@ -1,0 +1,64 @@
+---
+title: "Working with big data"
+title-slide-attributes: 
+  data-background-image: "images/bg.png"
+  data-background-size: 100%
+subtitle: "Session 4: Application 1"
+author: "Professor Di Cook"
+institute: "Department of Econometrics and Business Statistics"
+footer: "[BAPPENAS Masterclass - Day 3 Session 4](https://dicook.github.io/BAPPENAS_2025/)"
+format:
+  revealjs:
+    multiplex: false
+    slide-number: c/t
+    slide-tone: false
+    theme: "assets/monash.scss"
+    width: 1600
+    height: 900
+    margin: 0.05
+    embed-resources: true
+---
+
+```{r, include = FALSE}
+# Load libraries 
+source("libraries.R")
+
+# Set up chunk for all slides
+source("chunk_options_and_themes.R")
+```
+
+## About the data
+
+This is data is the OSIRIS from the Bureau van Dijk OSIRIS Database, which contains comprehensive financial and ownership information on public companies, banks, and insurance companies globally. It provides standardised and "as reported" financials, earnings estimates, ownership data, and news. Visit the link in the References section to learn more about the variables reported in this data.
+
+The data covers 2018-2021, which overlaps with the pandemic. The subset provided is on Indonesian companies, in four separate files: `osiris_Indonesia_2018.rda`, `osiris_Indonesia_2019.rda`, `osiris_Indonesia_2020.rda`, `osiris_Indonesia_2021.rda`.
+
+The the primary question motivating the analysis is "How did the pandemic affect corporate financials in Indonesia?"
+
+## Steps to take
+
+1. Take a glimpse of the data
+2. Decide which variables to focus on
+3. Combine the data sets, and select only the variables being used
+4. Check the availability of data, the missing value patterns
+5. Handle missings
+6. Make few plots of the data to understand the scope of the data and the effect of the pandemic
+7. Check some unusual patterns with visual inference
+8. Fit a model to refine the view to focus on the main question
+9. Diagnose the model fit
+10. Refine a data visualisation to communicate results
+
+
+## Resources
+
+- [tidymodels.org](https://www.tidymodels.org/)
+- [Tidy Modeling with R](https://www.tmwr.org/)
+- [Tidy Text](https://www.tidytextmining.com/)
+- [Interpretable Machine Learning](https://christophm.github.io/interpretable-ml-book/)
+- [Forecasting: Principles and Practice (3e)](https://otexts.com/fpp3/)
+
+::: bottom
+<span style="display:inline-block;"><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a></span><span style="display:inline-block;"> This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.</span>
+:::
+
+

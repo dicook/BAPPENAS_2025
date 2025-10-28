@@ -1,0 +1,51 @@
+---
+title: "Working with big data"
+title-slide-attributes: 
+  data-background-image: "images/bg.png"
+  data-background-size: 100%
+subtitle: "Session 6: Application 2"
+author: "Professor Di Cook"
+institute: "Department of Econometrics and Business Statistics"
+footer: "[BAPPENAS Masterclass - Day 4 Session 2](https://dicook.github.io/BAPPENAS_2025/)"
+format:
+  revealjs:
+    multiplex: false
+    slide-number: c/t
+    slide-tone: false
+    theme: "assets/monash.scss"
+    width: 1600
+    height: 900
+    margin: 0.05
+    embed-resources: true
+---
+
+```{r, include = FALSE}
+# Load libraries 
+source("libraries.R")
+
+# Set up chunk for all slides
+source("chunk_options_and_themes.R")
+```
+
+## About the data
+
+https://github.com/horankev/quake_data
+
+## Steps to take
+
+1. Read in the two data sets
+2. Subset the data to contain only quakes in 2023, small enough to experiment with
+3. Make a map with earthquake locations plotted
+4. Make an interactive plot of magnitude and date
+5. Link the two plots so that a user can select points in one plot and examine where they are inthe other
+6. Develop an animation of earthquakes over time
+
+
+## Resources
+
+
+::: bottom
+<span style="display:inline-block;"><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a></span><span style="display:inline-block;"> This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.</span>
+:::
+
+
