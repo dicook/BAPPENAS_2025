@@ -280,7 +280,7 @@ Secondary colours are to be used:
 
 .information-slide {
   background-color: #D93F00!important; 
-  font-size: 200%;
+  font-size: 150%;
 }
 
 .activity-slide {
@@ -332,4 +332,9 @@ div.info {
   max-height: 500px;
   overflow-x: auto;
   background-color: lightgrey;
+}
+
+.reveal pre code .highlight-line {
+  background-color: rgba(0, 83, 155, 0.15); /* Monash blue tint */
+  border-left: 3px solid #00539b;
 }
