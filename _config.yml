@@ -1,6 +1,2 @@
-remote_theme: mmistakes/minimal-mistakes
-title: "Dianne Cook"
-description: "Data Science | Monash University"
-
-# Optional Monash colour palette via style overrides
-minimal_mistakes_skin: "default"
+theme: jekyll-theme-slate
+title: Tutorial
