@@ -48,6 +48,15 @@ The the primary question motivating the analysis is "How did the pandemic affect
 9. Diagnose the model fit
 10. Refine a data visualisation to communicate results
 
+## Setup 
+
+Work along with me...
+
+1. **Open RStudio and create a project**, in a new directory/folder for this workshop, e.g. bigdata. This will create a folder called `bigdata` and a project file `bigdata.Rproj`. 
+2. **Download the zip file**, that contains the data, and code to ge started. Unzip it into the `bigdata` directory. It will create the sub-directories `data` which will contain the data, and some starting files. 
+3. **Open the file** `sandbox.R`. This is where we will write and experiment with code for the analysis. The purpose of first working with R scripts is to get the code working in a satisfactory manner, before embedding it into a quarto document, that can be re-built with new data and summarises the work.
+4. Use the starter code in `sandbox.R` to read the data and take a quick look.
+
 
 ## Resources
 
