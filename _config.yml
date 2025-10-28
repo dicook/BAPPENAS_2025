@@ -1,2 +1,20 @@
-theme: jekyll-theme-slate
-title: Tutorial
+theme: jekyll-theme-minimal
+title: "BAPPENAS Masterclass - Working with big data"
+logo: /assets/monash-logo-blue.png
+
+# Appearance
+google_fonts: "Open Sans:400,600"
+
+# Optional inline style
+head_scripts:
+  - |
+    <style>
+      body { font-family: "Open Sans", Helvetica, Arial, sans-serif; }
+      h1, h2, h3 { color: #00539b; }
+      a { color: #00539b; }
+      a:hover { color: #009fe3; }
+      footer { border-top: 3px solid #00539b; padding: 1em 0; }
+    </style>
+
+# Footer
+footer: "© 2025 Dianne Cook"
