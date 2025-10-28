@@ -26,7 +26,7 @@ We assume some familiarity with R, and will teach using R and Rstudio.
 | 3  | Statistical modeling and machine learning | Extending the notion of tidy data to models provides a cleaner way to think about the process of prediction and interpretation. |
 | 4  | Application 1 | Working with Indonesian economic data. |
 | 5  | Interactive and dynamic graphics | Here we learn how to visualise data beyond two dimensions, to assess relationships between many variables. |
-| 6  | Application 2 | Working with spatial and temporal data for Indonesia. |
+| 6  | Application 2 | Working with interactive plots for spatial and temporal data about Indonesia. |
 
 ## Getting started
 
