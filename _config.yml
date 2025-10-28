@@ -4,34 +4,3 @@ description: "Data Science | Monash University"
 
 # Optional Monash colour palette via style overrides
 minimal_mistakes_skin: "default"
-
-# Custom CSS overrides (no SCSS build needed)
-head_scripts:
-  - |
-    <style>
-      :root {
-        --monash-blue: #00539b;
-        --monash-light-blue: #009fe3;
-        --monash-grey: #f2f2f2;
-      }
-      body {
-        font-family: "Open Sans", Helvetica, Arial, sans-serif;
-        background-color: white;
-        color: #333;
-      }
-      a {
-        color: var(--monash-blue);
-      }
-      a:hover {
-        color: var(--monash-light-blue);
-      }
-      h1, h2, h3 {
-        color: var(--monash-blue);
-        font-weight: 600;
-      }
-      footer {
-        background-color: var(--monash-grey);
-        border-top: 3px solid var(--monash-blue);
-        padding: 1em 0;
-      }
-    </style>
