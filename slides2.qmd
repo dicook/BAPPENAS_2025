@@ -2144,21 +2144,23 @@ ggplot(tb_idn, aes(x=year, y=count, colour=age)) +
 ## Mapping and proximity
 
 :::: {.columns}
-::: {.column width="30%"}
+::: {.column width="20%"}
 Same proximity is used, but different geoms. 
 
-- Which is better to determine the relative ratios of males to females by age?
+*Which is better to compare the relative ratios of males to females by age?*
 :::
-::: {.column width="70%"}
-```{r side-by-side bars of males females, fig.width=8, fig.height=5, echo = F, out.width="70%"}
+::: {.column width="80%"}
+```{r side-by-side bars of males females, fig.width=8, fig.height=3, echo = F, out.width="70%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=sex, y=count, fill=sex)) +
     geom_bar(stat="identity", position="dodge") + 
     facet_wrap(~age, ncol=6) +
+    scale_y_continuous("count ('000)", breaks=seq(0, 28000, 5000),
+      labels=c("0", "5", "10", "15", "20", "25")) +
     ggtitle("Position - common scale ")
 ```
 
-```{r piecharts of males females, fig.width=8, fig.height=5, echo = F, out.width="70%"}
+```{r piecharts of males females, fig.width=10, fig.height=2.5, echo = F, out.width="100%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=1, y=count, fill=sex)) +
     geom_bar(stat="identity", position="fill") + 
@@ -2172,23 +2174,25 @@ tb_idn |> filter(year == 2012) |>
 ## Mapping and proximity
 
 :::: {.columns}
-::: {.column width="30%"}
+::: {.column width="20%"}
 Same proximity is used, but different geoms. 
 
-Which is better to determine the relative ratios of ages by sex?
+*Which is better to compare the relative ratios of ages by sex?*
 :::
 
-::: {.column width="70%"}
-```{r side-by-side bars of age, fig.width=8, fig.height=5, echo = F, out.width="70%"}
+::: {.column width="40%"}
+```{r side-by-side bars of age, fig.width=8, fig.height=4, echo = F, out.width="100%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=age, y=count, fill=age)) +
     geom_bar(stat="identity", position="dodge") + 
     facet_wrap(~sex, ncol=6) +
     scale_fill_brewer("", palette="Dark2") +
+    scale_y_continuous("count ('000)", breaks=seq(0, 28000, 5000),
+      labels=c("0", "5", "10", "15", "20", "25")) +
     ggtitle("Position - common scale ")
 ```
 
-```{r piecharts of age, fig.width=8, fig.height=5, echo = F, out.width="70%"}
+```{r piecharts of age, fig.width=8, fig.height=4, echo = F, out.width="100%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=1, y=count, fill=age)) +
     geom_bar(stat="identity", position="fill") + 
@@ -2198,7 +2202,11 @@ tb_idn |> filter(year == 2012) |>
     coord_polar(theta = "y")
 ```
 
-```{r stacked bars of age, fig.width=8, fig.height=5, echo = F, out.width="70%"}
+:::
+
+::: {.column width="40%"}
+
+```{r stacked bars of age, fig.width=8, fig.height=6, echo = F, out.width="100%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=1, y=count, fill=age)) +
     geom_bar(stat="identity", position="fill") + 
@@ -2219,10 +2227,12 @@ ggplot(dsamp, aes(x=carat, y=price, colour = clarity)) +
   geom_point() +
   geom_smooth(se=FALSE) +
   scale_color_brewer(palette="Set1") +
+  scale_y_continuous("price ('000)", breaks=seq(0, 18000, 5000),
+    labels=c("0", "5", "10", "15")) +
   facet_wrap(~clarity, ncol=4)
 ```
 
-Which has the steeper slope, VS1 or VS2?
+*Which has the steeper slope, VS1 or VS2?*
 
 ## Change blindness
 
@@ -2230,7 +2240,7 @@ Which has the steeper slope, VS1 or VS2?
 ::: column
 Making comparisons across plots requires the eye to jump from one focal point to another. 
 
-It may result in not noticing differences. 
+It may result in missing important differences. 
 :::
 
 ::: column
@@ -2241,6 +2251,8 @@ ggplot(dsamp, aes(x=carat, y=price,
                   colour = clarity)) +
   geom_point() +
   geom_smooth(se=FALSE) +
+  scale_y_continuous("price ('000)", breaks=seq(0, 18000, 5000),
+    labels=c("0", "5", "10", "15")) +
   scale_color_brewer(palette="Set1") 
 ```
 :::
