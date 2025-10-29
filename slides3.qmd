@@ -30,7 +30,7 @@ source("chunk_options_and_themes.R")
 ```{r}
 #| label: setting_up
 #| echo: false
-load(here::here("data/french_fries.rda"))
+load("data/french_fries.rda")
 ```
 
 ## Outline
@@ -44,10 +44,7 @@ load(here::here("data/french_fries.rda"))
 
 ```{r fig.width=9, fig.height=4, out.width="100%", fig.align='center', echo=FALSE}
 #| label: overview-methods
-library(tidyverse)
-library(gapminder)
-library(gridExtra)
-flea <- read_csv("http://www.ggobi.org/book/data/flea.csv")
+load("data/flea.rda")
 p1 <- ggplot(flea, aes(x=tars1, y=aede1, colour = species)) + 
   geom_point() + 
   scale_colour_brewer(palette = "Dark2") +
@@ -206,10 +203,7 @@ write_csv(d, file="data/sine-curve-test.csv")
 #| fig-width: 4
 #| fig-height: 4
 #| out-width: 100%
-#w <- read_csv(here::here("data/wiggly.csv")) |>
-#  rename(x1=x, x2=y) |>
-#  mutate(class = factor(class))
-w <- read_csv(here::here("data/sine-curve.csv")) |>
+w <- read_csv("data/sine-curve.csv") |>
   mutate(cl = factor(cl))
 ggplot(w, aes(x=x1, y=x2, colour = cl)) +
   geom_point(size=2.5, alpha=0.8) +
@@ -260,8 +254,7 @@ p2 <- ggplot(w_grid, aes(x=x1, y=x2, colour = prf)) +
   ggtitle("Non-parametric") +
   theme(legend.position = "none",
         axis.text = element_blank())
-#p1 + p2 + plot_layout(ncol=1)
-grid.arrange(p1, p2)
+p1 + p2 + plot_layout(ncol=1)
 ```
 
 :::
@@ -374,8 +367,7 @@ p3 <- ggplot(w_grid, aes(x=x1, y=x2, colour = prf)) +
         axis.text = element_blank(),
         axis.title = element_blank())
 
-#p1 + p2 + p3 + plot_layout(ncol=3)
-grid.arrange(p1, p2, p3, ncol=3)
+p1 + p2 + p3 + plot_layout(ncol=3)
 ```
 
 [Parametric]{.monash-orange2} models tend to be [less flexible]{.monash-orange2} but [non-parametric]{.monash-blue2}  models can be flexible or less flexible depending on [parameter settings]{.monash-blue2}.
@@ -767,7 +759,7 @@ Compute and examine the [usual diagnostics]{.monash-blue2}, some methods have mo
 #| fig-width: 4
 #| fig-height: 4
 #| out-width: 80%
-w_test <- read_csv(here::here("data/sine-curve-test.csv"))
+w_test <- read_csv("data/sine-curve-test.csv")
 ggplot() +
   geom_point(data=w_grid, aes(x=x1, y=x2, 
                               colour = prf), 
@@ -826,7 +818,7 @@ NOTE, WE CAN PLOT THESE THINGS IN HIGH DIMENSIONS. But this is for another day.
 #| fig-width: 4
 #| fig-height: 4
 #| out-width: 60%
-w <- read_csv(here::here("data/sine-curve.csv")) |>
+w <- read_csv("data/sine-curve.csv") |>
   mutate(cl = factor(cl))
 w_rf <- randomForest(cl~x1+x2, data=w, ntree=200)
 w_rf_pred <- predict(w_rf, w, type="prob") |>
@@ -949,8 +941,12 @@ d <- jackolantern_surreal_data[sample(1:5395, 2000),]
 ggduo(d, c("x1", "x2", "x3", "x4"), "y")
 ```
 
+Data looks uninteresting: weak linear relationships between response and predictors. 
+
 :::
 ::: {.column}
+
+::: {.fragment}
 
 ```{r}
 #| label: surreal2
@@ -967,33 +963,43 @@ ggplot(d_all, aes(x=.fitted, y=.resid)) +
   geom_point() +
   theme(aspect.ratio=1)
 ```
+
+Residuals have a *spooky* pattern!
+:::
+
 :::
 ::::
 
 ## Reading residual plots using a lineup
 
 :::: {.columns}
-::: {.column}
-- Reading residual plots can be extermely hard!
+::: {.column width="30%"}
+- Reading residual plots can be extremely hard!
 - You have to decide whether there is NO PATTERN.
 - This is a good place to use the lineup developed to do inference for data visualisation.
 
 :::
 
-::: {.column}
+::: {.column width="70%"}
 
 ```{r}
 #| label: tips-lineup
 #| fig-height: 10
 #| fig-width: 10
-#| out-width: 100%
+#| out-width: 60%
 #| code-fold: true
 x <- lm(tip ~ total_bill, data = tips)
-tips.reg <- data.frame(tips, .resid = residuals(x), .fitted = fitted(x))
+tips.reg <- data.frame(tips, .resid = residuals(x), 
+                       .fitted = fitted(x))
 library(ggplot2)
-ggplot(lineup(null_lm(tip ~ total_bill, method = 'rotate'), tips.reg)) +
-  geom_point(aes(x = total_bill, y = .resid)) +
-  facet_wrap(~ .sample)
+ggplot(lineup(null_lm(tip ~ total_bill, 
+                      method = 'rotate'), 
+              tips.reg)) +
+  geom_point(aes(x = total_bill, 
+                 y = .resid)) +
+  facet_wrap(~ .sample) +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank())
 ```
 
 :::
@@ -1005,118 +1011,130 @@ ggplot(lineup(null_lm(tip ~ total_bill, method = 'rotate'), tips.reg)) +
 
 ## Tidy models {.transition-slide .center style="text-align: center;"}
 
-## Models and model output
-
-Functions such as `lm`, `glm`, `lmer`, `glmmTMB` ... allow us to fit models
-
-e.g. fit french fry rating with respect to all designed main effects:
-
-```{r}
-#| label: models and model output
-
-ff_long <- french_fries |> pivot_longer(potato:painty, names_to = "type", values_to = "rating")
-ff_lm <- lm(rating~type+treatment+time+subject, 
-data=ff_long)
-```
-
-##
-
-`summary`, `str`, `resid`, `fitted`, `coef`, ... allow us to extract different parts of a model for a linear model. Other model functions work differently ... major headaches!
-
-```{r}
-#| label: examine the model fit
-summary(ff_lm)
-```
-
-
-
 ## Tidying model output
 
-The package `broom` (`broom.mixed` for `glmmTMB`) gets model results into a tidy format at different levels
+:::: {.columns}
+::: {.column}
 
-- model level: `broom::glance` (values such as AIC, BIC, model fit, ...)
-- coefficients in the model: `broom::tidy` (estimate, confidence interval, significance level, ...)
-- observation level: `broom::augment` (fitted values, residuals, predictions, influence, ...)
+The package `broom` gets model results into a tidy format at different levels. (And `broom.mixed` does this for mixed models.)
 
-
-
-## Goodness of fit statistics: `glance`
-
-```{r}
-#| label: goodness of fit statistics
-glance(ff_lm)
-```
-
-## Model estimates: `tidy`
+- **model level**: `broom::glance` (values such as AIC, BIC, model fit, ...)
+- **coefficients in the model**: `broom::tidy` (estimate, confidence interval, significance level, ...)
+- **observation level**: `broom::augment` (fitted values, residuals, predictions, influence, ...)
+:::
+::: {.column}
 
 ```{r}
-#| label: model estimates
-ff_lm_tidy <- tidy(ff_lm)
-head(ff_lm_tidy)
+#| code-fold: true
+glance(d_lm)
+tidy(d_lm)
 ```
 
-## Model diagnostics: `augment`
+:::
+::::
+
+## `tidymodels` 
+
+`tidymodels` is a set of R packages that make it easier to build, tune, and evaluate statistical and machine learning models — all using the same consistent, tidyverse-style syntax. It provides a framework for the modeling workflow in R:
+
+1. Preprocess data (with `recipes`)
+2. Specify models (with `parsnip`)
+3. Resample or cross-validate (with `rsample`)
+4. Tune hyperparameters (with `tune`)
+5. Evaluate and compare models (with `yardstick`, `workflows`, `broom`)
+
+## Case study: hotel bookings [(1/10)]{.smallest}
+
+Source: [A predictive modeling case study](https://www.tidymodels.org/start/case-study/)
+
+:::: columns
+::: column
+
+**About the data**: The hotel bookings data from [Antonio, Almeida, and Nunes (2019)](https://doi.org/10.1016/j.dib.2018.11.126) to predict which hotel stays included children and/or babies, based on the other characteristics of the stays such as which hotel the guests stay at, how much they pay, etc.
+
+**Model**: We will build a model to predict which actual hotel stays included children and/or babies, and which did not. Our outcome variable `children` is a factor variable with two levels.
+
+:::
+::: column
+
+::: {style="font-size: 70%;"}
 
 ```{r}
-#| label: model diagnostics
-ff_lm_all <- augment(ff_lm)
-glimpse(ff_lm_all)
+#| code-fold: true
+library(tidymodels)
+load("data/hotels.rda")
+glimpse(hotels)
 ```
-
-## Residual plot
 
 ```{r}
-#| label: residual plot
-ggplot(ff_lm_all, aes(x=.fitted, y=.resid)) + geom_point()
+#| code-fold: true
+hotels |> 
+  count(children) |>
+  mutate(prop = n/sum(n))
 ```
 
-## Adding random effects
-
-Add random intercepts for each subject
-
-```{r}
-#| label: add random intercepts for each subject
-#| results: hide
-fries_lmer <- lmer(rating~type+treatment+time + ( 1 | subject ), 
-data = ff_long)
-```
-
-
-## Your turn {.inverse}
-
-- Run the code of the examples so far
-
-The `broom.mixed` package provides similar functionality to mixed effects models as `broom` does for fixed effects models
-
-- Try out the functionality of `broom.mixed` on each level: model, parameters, and data
-- Augment the `ff_long` data with the model diagnostics
-- Plot the residuals from the random effects model
-- Plot fitted values against observed values
-
-::: {.content-visible when-format="revealjs"}
-`r countdown::countdown(5)`
 :::
 
+:::
+::::
+
+## Case study: hotel bookings [(2/10)]{.smallest}
+
+**Data splitting and re-sampling**
+
+:::: columns
+::: column
+
+Reserve 25% of the stays to the test set. The outcome variable children is pretty imbalanced so use a stratified random sample.
+
+:::
+::: column
+
 ```{r}
-#| label: solution to french fries modeling
-#| eval: false
-#| echo: false
-## the model is pretty bad:
-glance(fries_lmer)
-tidy(fries_lmer)
+#| code-fold: true
+set.seed(656)
+splits      <- initial_split(hotels, strata = children)
 
-ff_lmer_all <- augment(fries_lmer)
+hotel_other <- training(splits)
+hotel_test  <- testing(splits)
 
-ggplot(ff_lmer_all, aes(x=.fitted, y=.resid)) + geom_point() +
-  coord_equal()
+# training set proportions by children
+hotel_other %>% 
+  count(children) %>% 
+  mutate(prop = n/sum(n))
 
-ggplot(ff_lmer_all, aes(x=.fitted, y=rating)) + geom_point() +
-  coord_equal() 
+# test set proportions by children
+hotel_test  %>% 
+  count(children) %>% 
+  mutate(prop = n/sum(n))
 ```
+:::
+::::
 
-## Statistical models
+## Case study: hotel bookings [(2/10)]{.smallest}
 
-## Computational models
+**Data splitting and re-sampling**
+
+:::: columns
+::: column
+
+The "other" set is further divided into training and validation sets. These two are used to build the model.
+
+The test set is only used when the final model is decided. 
+
+:::
+::: column
+
+```{r}
+#| code-fold: true
+set.seed(703)
+val_set <- validation_split(hotel_other, 
+                            strata = children, 
+                            prop = 0.80)
+val_set
+```
+:::
+::::
 
 ## Forecasting
 
