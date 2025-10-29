@@ -33,6 +33,978 @@ source("chunk_options_and_themes.R")
 load(here::here("data/french_fries.rda"))
 ```
 
+## Outline
+
+## Framing the problem
+
+1. **Supervised learning**
+    a. **classification**: categorical $y_i$ is [available]{.monash-orange2} for all $x_i$
+    b. **regression**: continuous $y_i$ is [available]{.monash-orange2} for all $x_i$
+2. **Unsupervised learning**: $y_i$ [unavailable]{.monash-orange2} for all $x_i$ 
+
+```{r fig.width=9, fig.height=4, out.width="100%", fig.align='center', echo=FALSE}
+#| label: overview-methods
+library(tidyverse)
+library(gapminder)
+library(gridExtra)
+flea <- read_csv("http://www.ggobi.org/book/data/flea.csv")
+p1 <- ggplot(flea, aes(x=tars1, y=aede1, colour = species)) + 
+  geom_point() + 
+  scale_colour_brewer(palette = "Dark2") +
+  xlab("Var 1") + ylab("Var 2") +
+  ggtitle("Classification") +
+  theme(legend.position="None") + 
+  theme(aspect.ratio=1)
+p2 <- ggplot(mtcars, aes(x=hp, y=mpg)) +
+  geom_point() +
+  geom_smooth(se=F) +
+  ggtitle("Regression") +
+  theme(aspect.ratio=0.7)
+p3 <- ggplot(flea, aes(x=tars1, y=aede1)) + 
+  geom_point() + xlab("Var 1") + ylab("Var 2") +  
+  ggtitle("Clustering") + 
+  theme(aspect.ratio=1)
+p1 + p2 + p3 + plot_layout(ncol=3)
+```
+
+## What type of problem is this? [(1/3)]{.smallest}
+
+Food servers' tips in restaurants may be influenced by many factors, including the nature of the restaurant, size of the party, and table locations in the restaurant. Restaurant managers need to know which factors matter when they assign tables to food servers.  For the sake of staff morale, they usually want to avoid either the substance or the appearance of unfair treatment of the servers, for whom tips (at least in restaurants in the United States) are a major component of pay.
+
+In one restaurant, a food server recorded the following data on all
+customers they served during an interval of two and a half months in
+early 1990. The restaurant, located in a suburban shopping mall, was
+part of a national chain and served a varied menu. In observance of
+local law the restaurant offered seating in a non-smoking section to
+patrons who requested it. Each record includes a day and time, and
+taken together, they show the server's work schedule.
+
+What is $y$? What is $x$?
+
+## What type of problem is this? [(2/3)]{.smallest}
+
+Every person monitored their email for a week and recorded information about each email message; for example, whether it was spam, and what day of the week and time of day the email arrived. We want to use this information to build a spam filter, a classifier that will catch spam with high probability but will never classify good email as spam.
+
+What is $y$? What is $x$?
+
+## What type of problem is this? [(3/3)]{.smallest}
+
+A health insurance company collected the following information about households:
+
+- Total number of doctor visits per year
+- Total household size
+- Total number of hospital visits per year
+- Average age of household members
+- Total number of gym memberships
+- Use of physiotherapy and chiropractic services
+- Total number of optometrist visits
+
+The health insurance company wants to provide a small range of products, containing different bundles of services and for different levels of cover, to market to customers.
+
+What is $y$? What is $x$?
+
+## Model form
+
+All (data-centric) models have a fitted values and residuals. 
+
+$$y = f(x_1, x_2, ..., x_p) + \varepsilon$$
+
+where $y$ is the observed response, $x_1, ..., x_p$ are the observed values of $p$ predictors and $\varepsilon$ is the error. We conventionally use $n$ to specfify the sample size.
+
+- We might not be able to exactly specify $f$ in some forms
+- The residuals have some ideal properties, such as uniform over data space, symmetric around the fitted value, and some models impose a distribution. 
+
+## Accuracy vs interpretability
+
+::: {.columns}
+
+::: {.column}
+[Predictive accuracy]{.monash-blue2}
+
+The primary purpose is to be able to [predict]{.monash-orange2} $\widehat{Y}$ for new data. And we'd like to do that well! That is, [accurately]{.monash-orange2}. 
+
+![From XKCD](https://imgs.xkcd.com/comics/precision_vs_accuracy.png){style="font-size: 50%;"}
+:::
+
+::: {.column}
+[Interpretability]{.monash-blue2}
+
+Almost equally important is that we want to [understand the relationship]{.monash-orange2} between ${\mathbf X}$ and $Y$. The simpler model that is (almost) as accurate is the one we choose, always.
+
+> Person: *Why did you predict 42 for this value?*
+
+> Computer: **Awkward silence**
+
+[From Interpretable Machine Learning](https://christophm.github.io/interpretable-ml-book/){ style="font-size: 50%;"}
+
+:::
+:::
+
+## Parametric vs non-parametric
+
+::: {.columns}
+::: {.column}
+
+[Parametric]{.monash-purple2} methods
+
+- [Assume]{.monash-purple2} that the model takes a specific form
+- Fitting then is a matter of [estimating the parameters]{.monash-purple2} of the model
+- Generally considered to be [less flexible]{.monash-purple2}
+- If assumptions are [wrong]{.monash-purple2}, performance likely to be [poor]{.monash-purple2}
+    
+:::
+::: {.column}
+
+[Non-parametric]{.monash-pink2} methods 
+
+- [No]{.monash-pink2} specific assumptions
+- Allow the [data to specify]{.monash-pink2} the model form, without being too rough or wiggly
+- More [flexible]{.monash-pink2}
+- Generally needs [more observations]{.monash-pink2}, and not [too many variables]{.monash-pink2}
+- Easier to [over-fit]{.monash-pink2}
+    
+:::
+:::
+
+## 
+
+::: {.columns}
+::: {.column width=30%}
+
+![From XKCD](https://imgs.xkcd.com/comics/curve_fitting.png){width=500 style="font-size: 50%;"}
+:::
+::: {.column width=33%}
+
+```{r}
+#| echo: false
+#| eval: false
+#| label: sine-curve-data
+# Generate the sine-curve data
+set.seed(1259)
+x1 <- runif(340)
+x2 <- runif(340)
+y <- 3*x1+sin(x1*15)
+y <- (y-min(y))/(max(y)-min(y))
+d <- tibble(x1, x2, y)
+d$cl <- ifelse(x2 > y, "A", "B")
+d$cl[sample(1:340, 25)] <- sample(c("A", "B"), 25, replace=TRUE)
+write_csv(d, file="data/sine-curve.csv")
+# Test set
+x1 <- runif(212)
+x2 <- runif(212)
+y <- 3*x1+sin(x1*15)
+y <- (y-min(y))/(max(y)-min(y))
+d <- tibble(x1, x2, y)
+d$cl <- ifelse(x2 > y, "A", "B")
+d$cl[sample(1:212, 18)] <- sample(c("A", "B"), 18, replace=TRUE)
+write_csv(d, file="data/sine-curve-test.csv")
+```
+
+```{r}
+#| label: sine-curve-plot
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 100%
+#w <- read_csv(here::here("data/wiggly.csv")) |>
+#  rename(x1=x, x2=y) |>
+#  mutate(class = factor(class))
+w <- read_csv(here::here("data/sine-curve.csv")) |>
+  mutate(cl = factor(cl))
+ggplot(w, aes(x=x1, y=x2, colour = cl)) +
+  geom_point(size=2.5, alpha=0.8) +
+  geom_line(aes(x=x1, y=y), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("Observed data") + 
+  theme(legend.position = "none")
+```
+
+[Black line [is true boundary]{.monash-blue2}.]{.smaller}
+
+<br>
+
+[[Grids]{.monash-pink2} (right) show [boundaries]{.monash-pink2} for two different models.]{.smaller}
+
+:::
+::: {.column width=30%}
+
+```{r}
+#| label: sin-curve-models
+#| echo: false
+#| fig-width: 4
+#| fig-height: 8
+library(geozoo)
+w_grid <- cube.solid.random(p=2)$points
+colnames(w_grid) <- c("x1", "x2")
+w_grid <- w_grid |> as_tibble() |>
+  mutate(x1 = x1*(max(w$x1)-min(w$x1)+min(w$x1)),
+         x2 = x2*(max(w$x2)-min(w$x2)+min(w$x2)))
+w_lda <- lda(cl~x1+x2, data=w)
+w_lda_pred <- predict(w_lda, w_grid)$class
+w_rf <- randomForest(cl~x1+x2, data=w, ntree=2)
+w_rf_pred <- predict(w_rf, w_grid)
+w_grid <- w_grid |>
+  mutate(plda = w_lda_pred,
+         prf = w_rf_pred)
+p1 <- ggplot(w_grid, aes(x=x1, y=x2, colour = plda)) +
+  geom_point(alpha=0.5, size=2) +
+  geom_line(data=w, aes(x=x1, y=y), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("Parametric") +
+  theme(legend.position = "none",
+        axis.text = element_blank())
+p2 <- ggplot(w_grid, aes(x=x1, y=x2, colour = prf)) +
+  geom_point(alpha=0.5, size=2) +
+  geom_line(data=w, aes(x=x1, y=y), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("Non-parametric") +
+  theme(legend.position = "none",
+        axis.text = element_blank())
+#p1 + p2 + plot_layout(ncol=1)
+grid.arrange(p1, p2)
+```
+
+:::
+:::
+
+## Reducible vs irreducible error
+
+::: {.columns}
+::: {.column width=10%}
+:::
+
+::: {.column width=30%}
+```{r}
+#| label: model-errors1
+#| echo: false
+#| fig-width: 5
+#| fig-height: 5
+w <- w |>
+  mutate(plda = predict(w_lda, w)$class,
+         prf = predict(w_rf, w)) |>
+  mutate(lda_err = ifelse(cl != plda, "1", "0"),
+         rf_err = ifelse(cl != prf, "1", "0"))
+
+ggplot(w, aes(x=x1, y=x2, 
+                   colour = cl, 
+                   shape=lda_err)) +
+  geom_point(size=5, alpha=0.8) +
+  geom_line(aes(x=x1, y=y), 
+            inherit.aes = FALSE, 
+            colour="black") +
+  scale_color_discrete_qualitative() +
+  scale_shape_manual(values=c(1, 19)) +
+  ggtitle("Parametric errors") + 
+  theme(legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank())
+```
+
+:::
+
+::: {.column width=10%}
+:::
+
+::: {.column width=30%}
+
+```{r}
+#| label: model-errors2
+#| echo: false
+#| fig-width: 5
+#| fig-height: 5
+ggplot(w, aes(x=x1, y=x2, 
+                   colour = cl, 
+                   shape=rf_err)) +
+  geom_point(size=5, alpha=0.8) +
+  geom_line(aes(x=x1, y=y), 
+            inherit.aes = FALSE,
+            colour="black") +
+  scale_color_discrete_qualitative() +
+  scale_shape_manual(values=c(1, 19)) +
+  ggtitle("Non-parametric errors") + 
+  theme(legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank())
+```
+
+:::
+::: {.column width=10%}
+:::
+:::
+
+If the [model form is incorrect]{.monash-umber2}, the error (solid circles) may arise from wrong shape, and is thus [reducible]{.monash-umber2}. [Irreducible]{.monash-olive2} means that we have got the right model and mistakes (solid circles) are [random noise]{.monash-olive2}. 
+
+## Flexible vs inflexible
+
+```{r}
+#| label: flexible-model
+#| echo: false
+#| fig-width: 9
+#| fig-height: 3
+p1 <- ggplot(w_grid, aes(x=x1, y=x2, colour = plda)) +
+  geom_point(size=2, alpha=0.5) +
+  geom_line(data=w, aes(x=x1, y=y), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("Less flexible") +
+  theme(legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank())
+w_rf <- randomForest(cl~x1+x2, data=w, ntree=4)
+w_rf_pred <- predict(w_rf, w_grid)
+w_grid <- w_grid |>
+  mutate(prf = w_rf_pred)
+p2 <- ggplot(w_grid, aes(x=x1, y=x2, colour = prf)) +
+  geom_point(size=2, alpha=0.5) +
+  geom_line(data=w, aes(x=x1, y=y), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("<--------------->") +
+  theme(legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank())
+w_rf <- randomForest(cl~x1+x2, data=w, ntree=100)
+w_rf_pred <- predict(w_rf, w_grid)
+w_grid <- w_grid |>
+  mutate(prf = w_rf_pred)
+p3 <- ggplot(w_grid, aes(x=x1, y=x2, colour = prf)) +
+  geom_point(size=2, alpha=0.5) +
+  geom_line(data=w, aes(x=x1, y=y), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("More flexible") +
+  theme(legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank())
+
+#p1 + p2 + p3 + plot_layout(ncol=3)
+grid.arrange(p1, p2, p3, ncol=3)
+```
+
+[Parametric]{.monash-orange2} models tend to be [less flexible]{.monash-orange2} but [non-parametric]{.monash-blue2}  models can be flexible or less flexible depending on [parameter settings]{.monash-blue2}.
+
+## Bias vs variance
+
+::: {.columns}
+::: {.column}
+
+[Bias]{.monash-orange2} is the error that is introduced by modeling a 
+complicated problem by a simpler problem.
+
+- For example, linear regression assumes a linear relationship and perhaps the relationship is not exactly linear.
+- In general, but not always, the [more flexible]{.monash-orange2} a method is, the [less bias]{.monash-orange2} it will have because it can fit a complex shape better. 
+
+
+:::
+::: {.column}
+
+::: {.fragment}
+[Variance]{.monash-orange2}
+refers to how much your estimate would change if you had different training data. Its measuring how much your model depends on the data you have, to the neglect of future data.
+
+
+- In general, the [more flexible]{.monash-orange2} a method is, the [more variance]{.monash-orange2} it has. 
+- The [size]{.monash-orange2} of the training data can impact on the variance.
+:::
+
+:::
+:::
+
+## Bias 
+
+::: {.columns}
+::: {.column}
+
+```{r}
+#| label: bias1
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+p1 + ggtitle("Large bias")
+```
+
+When you impose too many assumptions with a parametric model, or use an inadequate non-parametric model, such as not letting an algorithm converge fully.
+
+:::
+::: {.column}
+
+```{r}
+#| label: bias2
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+p3 + ggtitle("Small bias")
+```
+
+When the model closely captures the true shape, with a parametric model or a flexible model.
+
+:::
+:::
+
+## Variance
+
+::: {.columns}
+::: {.column}
+
+```{r}
+#| label: variance1
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+p1 + ggtitle("Small variance")
+```
+
+This fit will be virtually identical even if we had a different training sample.
+
+:::
+::: {.column}
+
+```{r}
+#| label: variance2
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+p3 + ggtitle("Large variance")
+```
+
+Likely to get a very different model if a different training set is used.
+
+:::
+:::
+
+
+## Training vs test splits
+
+::: {.info}
+When data are reused for multiple tasks, instead of carefully *spent* from the finite data budget, certain risks increase, such as the risk of accentuating bias or compounding effects from methodological errors. [*Julia Silge*](https://www.tmwr.org/splitting)
+:::
+
+- [Training set]{.monash-blue2}: Used to fit the model, might be also broken into a validation set for frequent assessment of fit. 
+- [Test set]{.monash-blue2}: Purely used to assess final models performance on future data.
+
+## Training vs test splits
+
+::: {.columns}
+::: {.column}
+
+```{r}
+#| label: balanced-data
+d_bal <- tibble(y=c(rep("A", 6), rep("B", 6)),
+                x=c(runif(12)))
+d_bal$y
+set.seed(130)
+d_bal_split <- initial_split(d_bal, prop = 0.70)
+training(d_bal_split)$y
+testing(d_bal_split)$y
+```
+
+:::
+::: {.column}
+
+```{r}
+#| label: unbalanced-data
+d_unb <- tibble(y=c(rep("A", 2), rep("B", 10)),
+                x=c(runif(12)))
+d_unb$y
+set.seed(132)
+d_unb_split <- initial_split(d_unb, prop = 0.70)
+training(d_unb_split)$y
+testing(d_unb_split)$y
+```
+
+::: {.fragment}
+Always [stratify splitting]{.monash-orange2} by sub-groups, especially response variable classes.
+
+```{r}
+#| label: unbalanced-split
+d_unb_strata <- initial_split(d_unb, prop = 0.70, strata=y)
+training(d_unb_strata)$y
+testing(d_unb_strata)$y
+```
+:::
+
+:::
+:::
+
+## Measuring accuracy for categorical response
+
+Compute $\widehat{y}$ from [training data]{.monash-orange2}, $\{(y_i, {\mathbf x}_i)\}_{i = 1}^n$. The error rate ([fraction of misclassifications]{.monash-orange2}) to get the [Training Error Rate]{.monash-green2}
+
+$$\text{Error rate} = \frac{1}{n}\sum_{i=1}^n I(y_i \ne \widehat{y}({\mathbf x}_i))$$
+
+A better estimate of future [accuracy]{.monash-orange2} is obtained using [test data]{.monash-orange2} to get the [Test Error Rate]{.monash-green2}. 
+
+<br>
+
+::: {.info}
+Training error will usually be [smaller]{.monash-orange2} than test error. When it is much smaller, it indicates that the model is too well fitted to the training data to be accurate on future data (over-fitted).
+:::
+
+
+
+## Confusion (misclassification) matrix
+
+::: {.columns}
+::: {.column}
+
+<center>
+<table>
+<tr>  <td> </td><td> </td> <td colspan="2" align="center" > predicted </td> </tr>
+<tr>  <td> </td><td> </td> <td align="center" bgcolor="#daf2e9" width="80px"> `1` </td> <td align="center" bgcolor="#daf2e9" width="80px"> `0` </td> </tr>
+<tr height="50px">  <td> true </td><td bgcolor="#daf2e9"> `1` </td> <td align="center" bgcolor="#D3D3D3"> <em>`a`</em> </td> <td align="center" bgcolor="#D3D3D3"> <em>`b`</em> </td> </tr>
+<tr height="50px">  <td> </td><td bgcolor="#daf2e9"> `0`</td> <td align="center" bgcolor="#D3D3D3"> <em>`c`</em> </td> <td align="center" bgcolor="#D3D3D3"> <em>`d`</em> </td> </tr>
+</table>
+</center>
+
+Consider `1`=positive (P), `0`=negative (N). 
+
+- True positive (TP): `a`
+- True negative (TN): `d`
+- False positive (FP): `c` (Type I error)
+- False negative (FN): `b` (Type II error)
+
+:::
+::: {.column}
+
+- Sensitivity, recall, hit rate, or true positive rate (TPR): TP/P = `a`/(`a`+`b`)
+- Specificity, selectivity or true negative rate (TNR): TN/N = `d`/(`c`+`d`)
+- Prevalence: P/(P+N) = (`a`+`b`)/(`a`+`b`+`c`+`d`)
+- Accuracy: (TP+TN)/(P+N) = (`a`+`d`)/(`a`+`b`+`c`+`d`)
+- Balanced accuracy: (TPR + TNR)/2 (or average class errors)
+
+
+:::
+:::
+
+## Confusion (misclassification) matrix: computing
+
+::: {.columns}
+::: {.column}
+
+Two classes
+
+```{r}
+#| echo: false
+#| label: predictive-class-example
+a2 <- tibble(y = c(rep("bilby", 12),
+                      rep("quokka", 15)),
+             pred = c(rep("bilby", 9),
+                      rep("quokka", 13), 
+                      rep("bilby", 5)),
+             bilby = c(0.9, 0.8, 0.9, 
+                       0.7, 0.6, 0.8, 
+                       0.9, 0.7, 0.6,# true
+                       0.4, 0.3, 0.4,# error
+                       0.2, 0.4, 0.1,# true
+                       0.4, 0.1, 0.3, 
+                       0.2, 0.4, 0.3,# true 
+                       0.4, 
+                       0.6, 0.7,# error 
+                       0.6, 0.9, 0.7)) |>
+  mutate(quokka = 1-bilby)
+
+a3 <- a2 |>
+  bind_rows(tibble(
+    y = rep("numbat", 8), 
+    pred = c(rep("numbat", 6),
+                     rep("quokka", 2))))
+
+a2 <- a2 |> 
+  mutate(y = factor(y),
+         pred = factor(pred))
+a3 <- a3 |> 
+  mutate(y = factor(y),
+         pred = factor(pred))
+```
+
+```{r}
+#| eval: false
+#| echo: false
+# tidymodels has it transposed
+#| label: confusion-matrix
+cm <- conf_mat(a2, y, pred)
+autoplot(cm)
+# Make it show in right direction
+conf_mat(a2, pred, y, dnn=c("Truth", "Pred"))
+```
+
+```{r}
+# Write out the confusion matrix in standard form
+#| label: oconfusion-matrix-tidy
+cm <- a2 %>% count(y, pred) |>
+  group_by(y) |>
+  mutate(cl_acc = n[pred==y]/sum(n)) 
+cm |>
+  pivot_wider(names_from = pred, 
+              values_from = n) |>
+  select(y, bilby, quokka, cl_acc)
+```
+
+```{r}
+accuracy(a2, y, pred) |> pull(.estimate)
+bal_accuracy(a2, y, pred) |> pull(.estimate)
+sens(a2, y, pred) |> pull(.estimate)
+specificity(a2, y, pred) |> pull(.estimate)
+```
+:::
+
+::: {.column}
+
+More than two classes
+
+
+```{r}
+# Write out the confusion matrix in standard form
+cm3 <- a3 %>% count(y, pred) |>
+  group_by(y) |>
+  mutate(cl_err = n[pred==y]/sum(n)) 
+cm3 |>
+  pivot_wider(names_from = pred, 
+              values_from = n, values_fill=0) |>
+  select(y, bilby, quokka, numbat, cl_err)
+```
+
+```{r}
+accuracy(a3, y, pred) |> pull(.estimate)
+bal_accuracy(a3, y, pred) |> pull(.estimate)
+```
+:::
+
+:::
+
+## Receiver Operator Curves (ROC)
+
+::: {.columns}
+::: {.column}
+
+The balance of getting it right, without predicting everything as positive.
+
+![From wikipedia](https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Roc_curve.svg/440px-Roc_curve.svg.png){style="font-size: 50%;"}
+
+Need [predictive probabilities]{.monash-orange2}, probability of being each class. 
+:::
+::: {.column}
+
+```{r}
+#| label: roc-curve
+a2 |> slice_head(n=3)
+roc_curve(a2, y, bilby) |>
+  autoplot()
+```
+:::
+:::
+
+
+## Preparing to fit model: IDA {.transition-slide .center style="text-align: center;"}
+
+##
+
+::: {.column width=60%}
+<br><br>
+
+*The first thing to do with data is to [look at them]{.monash-blue2} .... usually means [tabulating]{.monash-blue2} and [plotting]{.monash-blue2} the data in many different ways to [see what's going on]{.monash-blue2}. With the wide availability of computer packages and graphics nowadays there is no excuse for ducking the labour of this preliminary phase, and it may save some* [**red faces**]{.monash-red2} *later.*
+
+[[Crowder, M. J. & Hand, D. J.  (1990) "Analysis of Repeated Measures"](https://doi.org/10.1201/9781315137421)]{.smallest}
+
+:::
+
+## Pre-processing steps
+
+- **Handle missing values**: most modeling methods require complete data.
+- **Decide on an appropriate model type**: Explore relationships between response and predictors: nonlinear, clustered. Different shapes indicate which model will likely fit better
+- **Check model assumptions**
+- **Feature engineering**: Do you have the predictors needed, or could you create better predictors? Should some variables be transformed.
+- **Check for anomalies**: Are there some observations that are unusal and might affect the fit? (We'll do this at the end, too.)
+- **Split data**: Decide on how much of the data should be used for training a model, validation, and testing.
+- **Reduce the number of predictors**: Too many predictors can result in over-fitting the training data. 
+
+## Check model assumptions
+
+- **Statistical models** tend to be less flexible. They impose strict assumptions, such as *linear form*, and *Gaussian errors*. Check by plotting response vs predictors to check the relationship is what is assumed, and spread is uniform.
+- **Non-parametric models, and algorithms**, don't explicitly impose assumptions, but the *process imposes constraints*, that means fit will fail if not satisfied. For example, tree-based methods mostly use a single variable for any split. If the relationship with the response is best explained by a combination of variables, this will result in a poor fit. 
+
+## Feature engineering
+
+Creating new variables to get better fits is a special skill! Sometimes automated by the method. All are transformations of the original variables. (See `tidymodels` steps.)
+
+- scaling, centering, sphering (`step_pca`)
+- log or square root or box-cox transformation (`step_log`)
+- ratio of values (`step_ratio`)
+- polynomials or splines: $x_1^2, x_1^3$ (`step_ns`)
+- dummy variables: categorical predictors expanded into multiple new binary variables (`step_dummy`)
+- Convolutional Neural Networks: neural networks but with pre-processing of images to combine values of neighbouring pixels; flattening of images
+
+
+## After fitting: diagnostics {.transition-slide .center style="text-align: center;"}
+
+## Diagnosing the fit
+
+::: {.columns}
+::: {.column}
+
+Compute and examine the [usual diagnostics]{.monash-blue2}, some methods have more
+
+- fit statistics: accuracy, sensitivity, specificity
+- errors/misclassifications
+- variable importance
+- plot residuals, examine the misclassifications
+- [check test set is similar to training]{.monash-pink2}
+
+[Go beyond ...]{.monash-orange2} Look at the data and the model together!
+
+[[Wickham et al (2015) Removing the Blindfold](http://onlinelibrary.wiley.com/doi/10.1002/sam.11271/abstract)]{.smaller}
+:::
+::: {.column}
+
+::: {.fragment}
+
+[*Training - plusses; Test - dots*]{.smaller .center}
+
+```{r}
+#| label: training-test
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 80%
+w_test <- read_csv(here::here("data/sine-curve-test.csv"))
+ggplot() +
+  geom_point(data=w_grid, aes(x=x1, y=x2, 
+                              colour = prf), 
+             alpha=0.05, size=4) +
+  geom_point(data=w, aes(x=x1, y=x2, colour = cl), 
+             shape=3, size=3) +
+  geom_point(data=w_test, aes(x=x1, y=x2, colour = cl), 
+             shape=19, size=3) +
+  scale_color_discrete_qualitative() +
+  theme(legend.position = "none",
+        axis.text = element_blank())
+```
+
+:::
+
+:::
+:::
+
+## Model-in-the-data-space
+
+:::: {.columns}
+::: {.column width=60%}
+
+![From XKCD](https://imgs.xkcd.com/comics/curve_fitting.png){width=450 style="font-size: 50%;"}
+
+:::
+::: {.column width=40%}
+
+<br>
+We plot the [model on the data]{.monash-orange2} to assess whether it [fits]{.monash-orange2} or is a [misfit]{.monash-orange2}!
+
+<br>
+
+::: {.fragment}
+Doing this in high dimensions is considered difficult! 
+:::
+
+::: {.fragment}
+So it is common to only plot the [*data-in-the-model-space*]{.monash-blue2}.
+:::
+
+::: {.fragment}
+NOTE, WE CAN PLOT THESE THINGS IN HIGH DIMENSIONS. But this is for another day.
+:::
+
+:::
+
+::::
+
+## Data-in-the-model-space
+
+:::: {.columns}
+::: {.column}
+```{r echo=FALSE}
+#| label: data-in-model-space1
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+w <- read_csv(here::here("data/sine-curve.csv")) |>
+  mutate(cl = factor(cl))
+w_rf <- randomForest(cl~x1+x2, data=w, ntree=200)
+w_rf_pred <- predict(w_rf, w, type="prob") |>
+  as_tibble(.name_repair="unique")
+w_rf_pred |> 
+  bind_cols(w) |>
+  select(`A`, cl) |>
+  ggplot(aes(x=`A`, colour=cl, fill=cl)) + 
+    geom_density(alpha=0.7) +
+    xlab("Prob class A") +
+    ggtitle("Random forest") + 
+    theme(legend.position="none")
+  
+```
+:::
+::: {.column}
+
+```{r echo=FALSE}
+#| label: data-in-model-space2
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+w_lda <- lda(cl~x1+x2, data=w)
+w_lda_pred <- predict(w_lda, w, method="predictive")$posterior |>
+  as_tibble(.name_repair="unique")
+w_lda_pred |> 
+  bind_cols(w) |>
+  select(`A`, cl) |>
+  ggplot(aes(x=`A`, colour=cl, fill=cl)) + 
+    geom_density(alpha=0.7) +
+    xlab("Prob class A") +
+    ggtitle("Linear DA") + 
+    theme(legend.position="none")
+```  
+
+:::
+
+::::
+
+Predictive probabilities are aspects of the model. It is useful to plot. What do we learn here?
+
+::: {.fragment}
+[But it doesn't tell you why there is a difference.]{.monash-orange2}
+:::
+
+## Model-in-the-data-space
+
+:::: {.columns}
+::: {.column}
+```{r}
+#| label: model-in-the-data-space1
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+library(geozoo)
+w_grid <- cube.solid.random(p=2)$points
+colnames(w_grid) <- c("x1", "x2")
+w_grid <- w_grid |> as_tibble() |>
+  mutate(x1 = x1*(max(w$x1)-min(w$x1)+min(w$x1)),
+         x2 = x2*(max(w$x2)-min(w$x2)+min(w$x2)))
+w_lda <- lda(cl~x1+x2, data=w)
+w_lda_pred <- predict(w_lda, w_grid)$class
+w_rf <- randomForest(cl~x1+x2, data=w, ntree=200)
+w_rf_pred <- predict(w_rf, w_grid)
+w_grid <- w_grid |>
+  mutate(plda = w_lda_pred,
+         prf = w_rf_pred)
+ggplot(w_grid, aes(x=x1, y=x2, colour = plda)) +
+  geom_point(alpha=0.5, size=2) +
+  geom_text(data=w, aes(x=x1, y=x2, label=cl), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("Linear DA") +
+  theme(legend.position = "none",
+        axis.text = element_blank())
+```
+
+:::
+::: {.column}
+
+```{r}
+#| label: model-in-the-data-space2
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 60%
+ggplot(w_grid, aes(x=x1, y=x2, colour = prf)) +
+  geom_point(alpha=0.5, size=2) +
+  geom_text(data=w, aes(x=x1, y=x2, label=cl), colour="black") +
+  scale_color_discrete_qualitative() +
+  ggtitle("Random forest") +
+  theme(legend.position = "none",
+        axis.text = element_blank())
+```
+:::
+::::
+
+::: {style="font-size: 85%;"} 
+Model is displayed, as a grid of predicted points in the original variable space. Data is overlaid, using text labels. What do you learn?
+
+::: {.fragment}
+[One model has a linear boundary, and the other has the highly non-linear boundary, which matches the class cluster better. Also ...]{.monash-orange2}
+:::
+:::
+
+## Plotting residuals
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| label: surreal1
+#| code-fold: true
+#| fig-width: 10
+#| fig-height: 2.5
+#| out-width: 100%
+# Load the Jack-o'-Lantern data
+d <- jackolantern_surreal_data[sample(1:5395, 2000),]
+
+ggduo(d, c("x1", "x2", "x3", "x4"), "y")
+```
+
+:::
+::: {.column}
+
+```{r}
+#| label: surreal2
+#| code-fold: true
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: 70%
+# Fit a linear model to the surreal Jack-o'-Lantern data
+d_lm <- lm(y ~ ., data = d)
+
+# Plot the residuals to reveal the hidden image
+d_all <- augment(d_lm, d)
+ggplot(d_all, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  theme(aspect.ratio=1)
+```
+:::
+::::
+
+## Reading residual plots using a lineup
+
+:::: {.columns}
+::: {.column}
+- Reading residual plots can be extermely hard!
+- You have to decide whether there is NO PATTERN.
+- This is a good place to use the lineup developed to do inference for data visualisation.
+
+:::
+
+::: {.column}
+
+```{r}
+#| label: tips-lineup
+#| fig-height: 10
+#| fig-width: 10
+#| out-width: 100%
+#| code-fold: true
+x <- lm(tip ~ total_bill, data = tips)
+tips.reg <- data.frame(tips, .resid = residuals(x), .fitted = fitted(x))
+library(ggplot2)
+ggplot(lineup(null_lm(tip ~ total_bill, method = 'rotate'), tips.reg)) +
+  geom_point(aes(x = total_bill, y = .resid)) +
+  facet_wrap(~ .sample)
+```
+
+:::
+
+::::
+
+## Re-sampling statistics
+
+
+## Tidy models {.transition-slide .center style="text-align: center;"}
+
 ## Models and model output
 
 Functions such as `lm`, `glm`, `lmer`, `glmmTMB` ... allow us to fit models
