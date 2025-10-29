@@ -2092,8 +2092,8 @@ p2
 
 Can you find the odd one out?
 
-```{r is shape preattentive, echo=FALSE, fig.width=4, fig.height=4}
-set.seed(20190715)
+```{r is shape preattentive, echo=FALSE, fig.width=4, fig.height=4, out.width="80%"}
+set.seed(1106)
 df <- data.frame(x=runif(100), y=runif(100), cl=sample(c(rep("A", 1), rep("B", 99))))
 ggplot(data=df, aes(x, y, shape=cl)) + theme_bw() + 
   geom_point(size=3) +
@@ -2104,7 +2104,7 @@ ggplot(data=df, aes(x, y, shape=cl)) + theme_bw() +
 
 Is it easier now?
 
-```{r is color preattentive, echo=FALSE, fig.width=4, fig.height=4}
+```{r is color preattentive, echo=FALSE, fig.width=4, fig.height=4, out.width="80%"}
 ggplot(data=df, aes(x, y, colour=cl)) + 
   geom_point(size=3) +
   theme_bw() + 
@@ -2112,15 +2112,6 @@ ggplot(data=df, aes(x, y, colour=cl)) +
   theme(legend.position="None", aspect.ratio=1, axis.text = element_blank(), axis.ticks=element_blank(), axis.title = element_blank()) 
 ```
 
-::: notes
-
-Some features, like shape and color, are processed pre-attentively - you don't have to look at every point to see which one doesn't match. This is parallel processing at work, and when you can take advantage of it, you should.
-
-A combination of pre-attentive features that are used to encode different variables must be processed serially -- you have to look at each point separately. So make sure you take advantage of this, but don't get greedy!
-
-Dual-encoding points by using both shape and color to show the same variable can make your plots more accessible and easier to read.
-
-:::
 
 ## Proximity
 
@@ -2149,23 +2140,17 @@ ggplot(tb_idn, aes(x=year, y=count, colour=age)) +
 ```
 :::
 
-::: notes
-
-Earlier, we demonstrated the importance of proximity for making comparisons -- when you design your chart, put the most important things close to each other so that they're easy to compare. If you want the viewer to compare sex effects, then use arrangement A. If it's more important for the viewer to  compare age effects, use B. 
-
-You do have to pick, but you can also make multiple charts to illustrate different aspects of the data.
-:::
 
 ## Mapping and proximity
 
-:::: columns
-::: column
+:::: {.columns}
+::: {.column width="30%"}
 Same proximity is used, but different geoms. 
 
 - Which is better to determine the relative ratios of males to females by age?
 :::
-::: column
-```{r side-by-side bars of males females, fig.height=3, echo = F}
+::: {.column width="70%"}
+```{r side-by-side bars of males females, fig.width=8, fig.height=5, echo = F, out.width="70%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=sex, y=count, fill=sex)) +
     geom_bar(stat="identity", position="dodge") + 
@@ -2173,7 +2158,7 @@ tb_idn |> filter(year == 2012) |>
     ggtitle("Position - common scale ")
 ```
 
-```{r piecharts of males females, fig.height=3, echo = F}
+```{r piecharts of males females, fig.width=8, fig.height=5, echo = F, out.width="70%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=1, y=count, fill=sex)) +
     geom_bar(stat="identity", position="fill") + 
@@ -2184,24 +2169,17 @@ tb_idn |> filter(year == 2012) |>
 :::
 ::::
 
-::: notes
-
-Geom is also important. Which plot works better for showing relative ratios of male/female for each age group?
-
-We could probably achieve the same effect by using a stacked bar chart -- pie charts use angle or area, while stacked bars use length. 
-:::
-
 ## Mapping and proximity
 
-:::: columns
-::: column
+:::: {.columns}
+::: {.column width="30%"}
 Same proximity is used, but different geoms. 
 
 Which is better to determine the relative ratios of ages by sex?
 :::
 
-::: column
-```{r side-by-side bars of age, fig.height=3, echo = F}
+::: {.column width="70%"}
+```{r side-by-side bars of age, fig.width=8, fig.height=5, echo = F, out.width="70%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=age, y=count, fill=age)) +
     geom_bar(stat="identity", position="dodge") + 
@@ -2210,7 +2188,7 @@ tb_idn |> filter(year == 2012) |>
     ggtitle("Position - common scale ")
 ```
 
-```{r piecharts of age, fig.height=3, echo = F}
+```{r piecharts of age, fig.width=8, fig.height=5, echo = F, out.width="70%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=1, y=count, fill=age)) +
     geom_bar(stat="identity", position="fill") + 
@@ -2220,7 +2198,7 @@ tb_idn |> filter(year == 2012) |>
     coord_polar(theta = "y")
 ```
 
-```{r stacked bars of age, fig.height=3, echo = F}
+```{r stacked bars of age, fig.width=8, fig.height=5, echo = F, out.width="70%"}
 tb_idn |> filter(year == 2012) |>
   ggplot(aes(x=1, y=count, fill=age)) +
     geom_bar(stat="identity", position="fill") + 
@@ -2234,7 +2212,9 @@ tb_idn |> filter(year == 2012) |>
 
 ## Change blindness
 
-```{r facetting plots can result in change blindness, echo=TRUE, out.width="50%", fig.width=6.5, fig.height=3.5}
+
+```{r facetting plots can result in change blindness, echo=TRUE, out.width="50%", fig.width=8, fig.height=5}
+#| code-fold: true
 ggplot(dsamp, aes(x=carat, y=price, colour = clarity)) +
   geom_point() +
   geom_smooth(se=FALSE) +
@@ -2243,17 +2223,6 @@ ggplot(dsamp, aes(x=carat, y=price, colour = clarity)) +
 ```
 
 Which has the steeper slope, VS1 or VS2?
-
-::: notes
-
-When you have to move around the chart and aren't making side-by-side comparisons, it gets pretty hard to see differences!
-
-This is what we mean by change blindness. 
-
-When possible place important comparisons next to each other.
-When not possible, provide a common point of reference for comparison. 
-
-:::
 
 ## Change blindness
 
@@ -2267,6 +2236,7 @@ It may result in not noticing differences.
 ::: column
 
 ```{r averlaying makes comparisons easier, echo=TRUE, out.width="100%", fig.width=7, fig.height=4}
+#| code-fold: true
 ggplot(dsamp, aes(x=carat, y=price, 
                   colour = clarity)) +
   geom_point() +
@@ -2276,13 +2246,6 @@ ggplot(dsamp, aes(x=carat, y=price,
 :::
 ::::
 
-::: notes
-When you have to move around the chart and aren't making side-by-side comparisons, it gets pretty hard to see differences!
-
-This is what we mean by change blindness. 
-
-It's much easier to see that the purple line is more shallow.
-:::
 
 ## Core principles [1/2]{.smallest} {.information-slide .center style="text-align: center;"}
 
