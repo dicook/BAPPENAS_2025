@@ -1175,11 +1175,19 @@ p1 + p2 + plot_layout(ncol=2)
 
 ```{r}
 #| code-fold: true
+#| fig-width: 10
+#| fig-height: 10
 p1 <- ggplot(hotel_other, aes(x=children, y=lead_time)) +
-  geom_quasirandom()
+  geom_boxplot()
 p2 <- ggplot(hotel_other, aes(x=children, y=stays_in_weekend_nights)) +
-  geom_quasirandom()
-p1 + p2 + plot_layout(ncol=2)
+  geom_boxplot()
+p3 <- ggplot(hotel_other, aes(x=children, y=average_daily_rate)) +
+  geom_boxplot()
+p4 <- ggplot(hotel_other, 
+             aes(x=reserved_room_type, 
+                 fill=children)) +
+  geom_bar(position="fill") 
+p1 + p2 + p3 + p4 + plot_layout(ncol=2)
 ```
 :::
 ::::
@@ -1335,7 +1343,7 @@ autoplot(lr_auc)
 
 Random forest models are generalist fits. It combines the predictions from many trees, each one fitted with a random selection of variables (features) and a random sample of observations. 
 
-Because each tree splits on single variables, it is also robust to missing values by using the complete data efficiently.
+Because each tree splits on single variables, it is also robust to missing values by using the complete data efficiently. It also handles the predictors as factors easily.
 
 :::
 

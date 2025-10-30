@@ -16,7 +16,7 @@ format:
     width: 1600
     height: 900
     margin: 0.05
-    embed-resources: true
+    embed-resources: false
 ---
 
 ```{r, include = FALSE}
@@ -26,6 +26,860 @@ source("libraries.R")
 # Set up chunk for all slides
 source("chunk_options_and_themes.R")
 ```
+
+## Why interactive plots {.transition-slide .center style="text-align: center;"}
+
+## Reasons 
+
+:::: {.columns}
+::: {.column}
+
+::: {style="font-size: 80%;"}
+
+- [Engage the reader]{.monash-blue2} and allow some choice in what to examine about the data or model.
+- [De-clutter the information presented]{.monash-blue2}, by only showing some aspects of the data on-demand.
+- [Too much information]{.monash-blue2} to present in a single plot, so provide multiple plots where the information is linked.
+- [Re-scale]{.monash-blue2} information to change the focus on-demand.
+
+**Interactivity** means the user can directly change aspects of the plot using mouse or keyboard controls.
+
+**Animation** is an alternative to interactivity that keeps control with the developer rather than the reader.
+:::
+
+:::
+
+::: {.column}
+
+::: {style="font-size: 50%;"}
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: 70%
+gp <- gapminder |> 
+  filter (year == 2007) |>
+  ggplot(aes(x=lifeExp, 
+             y=gdpPercap,
+             label=country,
+             colour=continent)) +
+  geom_point() +
+  scale_colour_discrete_divergingx(palette = "Zissou 1") +
+  scale_y_log10("gdpPercap ('000)",
+                breaks = seq(0, 50000, 10000), 
+                labels = seq(0, 50, 10)) +
+  theme(axis.title = element_text(family="Helvetica"),
+        axis.text = element_text(family="Helvetica"),
+        legend.title = element_text(family="Helvetica"),
+        legend.text = element_text(family="Helvetica")) 
+gp + geom_text() +
+  ggtitle("Too cluttered")
+
+```
+:::
+
+::: {.fragment}
+
+::: {style="font-size: 70%;"}
+
+**Keep in mind**
+
+- Interactivity like selection should be [precise]{.monash-blue2}. 
+- Response needs to be [fast]{.monash-blue2}.
+- Be careful not to [inflate plot file size]{.monash-blue2} when including in reports or presentations.
+
+:::
+
+:::
+
+:::
+
+::::
+
+## Different types of interactivity {.transition-slide .center style="text-align: center;"}
+
+## Mouse-over
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| code-fold: true
+ggplotly(gp, width=700, height=550) |>
+  config(displayModeBar = FALSE)
+```
+
+Notice also the subsetting legend
+
+:::
+::: {.column}
+
+Mouse-over is very easy to find in many, many software. 
+
+:::
+::::
+
+## Pan/zoom
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| code-fold: true
+ggplotly(gp, width=700, height=550) |>
+  config(
+         modeBarButtonsToRemove = c('select', 'zoomIn',
+                                    'zoomOut', 'autoScale',
+                                    'resetScale'))
+```
+:::
+::: {.column}
+
+:::
+::::
+
+## Selection
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+set.seed(802)
+gapminder_ts <- gapminder |>
+  as_tsibble(index=year, key=c(country, continent)) |>
+  sample_n_keys(50)
+gphk <- highlight_key(gapminder_ts, ~country)
+
+gpl <- ggplot(gphk, aes(x=year, 
+                             y=lifeExp, 
+                             group=country)) +
+        geom_line() +
+        ylab("Life Expectancy") +
+        ggtitle("Click on a line to highlight a country") +
+        theme(axis.title = element_text(family="Helvetica"),
+          axis.text = element_text(family="Helvetica"),
+          legend.title = element_text(family="Helvetica"),
+          legend.text = element_text(family="Helvetica"),
+          title = element_text(family="Helvetica"))
+
+ggpl <- ggplotly(gpl, height = 800, width = 1600) |>
+  config(displayModeBar = FALSE)
+        
+highlight(ggpl)
+        
+```
+
+## Linking multiple plots
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+gggs <- ggplot(gphk, aes(x=continent, y=country)) +
+  geom_point() +
+  xlab("") + ylab("") +
+  theme(axis.title = element_text(family="Helvetica"),
+      axis.text = element_text(family="Helvetica"),
+      legend.title = element_text(family="Helvetica"),
+      legend.text = element_text(family="Helvetica"),
+      title = element_text(family="Helvetica"))
+
+gggspl <- ggplotly(gggs, width=500, height=500) |>
+  config(displayModeBar = FALSE) |>
+  highlight(on = "plotly_selected", 
+            off = "plotly_doubleclick") 
+
+ggpl2 <- ggplotly(gpl, height = 500, width = 1000) |>
+  config(displayModeBar = FALSE) |>
+  highlight(on = "plotly_selected", 
+            off = "plotly_doubleclick") 
+  
+bscols(gggspl, ggpl2, widths = c(5, 7))
+```
+
+## Graphical user interface (GUI) control
+
+```{r}
+#| code-fold: true
+#| fig-width: 10
+#| fig-height: 8
+gpl <- ggplot(gphk, aes(x=year, 
+                             y=lifeExp, 
+                             group=country)) +
+        geom_line() +
+        ylab("Life Expectancy") + xlab("") +
+        theme(axis.title = element_text(family="Helvetica"),
+          axis.text = element_text(family="Helvetica"),
+          legend.title = element_text(family="Helvetica"),
+          legend.text = element_text(family="Helvetica"),
+          title = element_text(family="Helvetica"))
+ggpl2 <- ggplotly(gpl, height = 500, width = 1000) |>
+  config(displayModeBar = FALSE)
+  
+bscols(widths = c(4, 7),
+    filter_select("country", "country", gphk, ~country, multiple = TRUE),
+  ggpl2)
+  
+```
+
+## GUI elements
+
+:::: {.columns}
+::: {.column width="80%"}
+[GUIs provide explicit control]{.darkpink2} over a small range of interactions. 
+
+- Menu: for a medium number of categories
+- Slider: numeric values or range
+- Checkbox: for a small number of categories
+
+:::
+::: {.column width="20%"}
+
+<br>
+
+[Read more about crosstalk here.](https://rstudio.github.io/crosstalk/index.html)
+
+:::
+::::
+
+## Using sound
+
+[Vowel explorer example](https://petergill.shinyapps.io/shinyplay/)
+
+
+## Available software {.transition-slide .center style="text-align: center;"}
+
+## Software list
+
+- `crosstalk`: that's what shiny is based on - we will look into shiny later
+- `plotly`: interactive javascript graphics (maintained Carson Sievert)
+- `leaflet`: (RStudio) allows to make interactive maps. Has been picking up users and has developed a stable user base.
+- `ggvis`: both static and interactive graphics, work on it has stalled ... (Wickham)
+- `animint2`: interactive, linked graphics with ggplot2 syntax (Toby Hocking)
+-  `rCharts`, `rbokeh`, `gridSVG`, `epivizr`, `cranvas` previous approaches to packages with interactive graphics
+- see also https://r-graph-gallery.com/interactive-charts.html for additional packages (more specific)
+- and CRAN Task View [Dynamic Visualizations and Interactive Graphics](https://cran.r-project.org/web/views/DynamicVisualizations.html)
+
+## plotly
+
+The `plotly` package in R has two interfaces:
+
+- plot specification via plotly
+- translating `ggplot2` plots and adding interactive elements
+
+Plotly creates interactive plots with javascript.
+
+```{r}
+#| label: plotly
+#| warning: false
+#| message: false
+#| eval: false
+#| code-fold: true
+plot_ly(data = penguins_std, 
+        x = ~fl, 
+        y = ~bl, 
+        color = ~species, 
+        size = 3, 
+        width=420, height=300)
+```
+
+## plotly 
+
+```{r}
+#| label: plotly-show
+#| warning: false
+#| message: false
+#| code-fold: true
+#| eval: false
+plot_ly(data = penguins_std, 
+        x = ~fl, 
+        y = ~bl, 
+        color = ~species, 
+        size = 3, width=650, 
+        height=490, 
+        type="scatter", 
+        mode="markers")
+```
+
+## ggplot2 and plotly
+
+```{r}
+#| message: false
+#| code-fold: true
+#| eval: false
+gg <- ggplot(data=penguins_std, aes(x = fl, 
+                                    y = bl, 
+                                    colour = species)) +  
+  geom_point(alpha=0.5) + 
+  geom_smooth(method = "lm", se=F)
+ggplotly(gg, width=600, height=490)
+```
+
+## Maps {.smaller}
+
+::: columns
+::: column
+```{r}
+#| warning: false
+#| code-fold: true
+data(canada.cities, package = "maps")
+viz <- ggplot(canada.cities, aes(long, lat)) +
+  borders(regions = "canada") +
+  coord_equal() +
+  geom_point(aes(text = name, size = log2(pop)), 
+             colour = "red", alpha = 1/4) +
+  theme_map()
+```
+:::
+::: column
+```{r}
+#| code-fold: true
+#| out-width: 80%
+ggplotly(viz)
+```
+:::
+:::
+
+Not all `ggplot2` geoms are supported in plotly, but when they are, they just work out of the box
+
+
+
+## Modifying plotly {.smaller}
+
+`plotly` uses elements of `crosstalk` to provide additional interactivity, such as linked highlighting
+
+
+```{r}
+#| eval: true
+#| warning: false
+#| message: false
+#| code-fold: true
+txh_shared <- highlight_key(txhousing, ~year)
+
+p <- ggplot(txh_shared, aes(month, median)) +
+   geom_line(aes(group = year)) + 
+   geom_smooth(data = txhousing, method = "gam") + 
+   scale_x_continuous("", breaks=seq(1, 12, 1),
+        labels=c("J", "F", "M", "A", "M", "J", 
+                 "J", "A", "S", "O", "N", "D")) +
+   scale_y_continuous("Median price ('00,000)", 
+                      breaks = seq(0,300000,100000),
+                      labels = seq(0,3,1)) +
+   facet_wrap(~ city)
+
+gg <- ggplotly(p, height = 750, width = 900) %>%
+   plotly::layout(title = "Click on a line to highlight a year")
+```
+
+## {.smaller}
+
+```{r}
+#| code-fold: true
+#| warning: false
+#| message: false
+#| fig-height: 10
+#| fig-width: 12
+#| out-width: 50%
+highlight(gg)
+```
+
+## The power of crosstalk {.smaller}
+
+:::: {.columns}
+::: {.column width="80%"}
+```{r}
+#| label: tsibbletalk1
+#| code-fold: true
+#| code-line-numbers: "7,8"
+tourism_shared <- tourism |>
+  as_shared_tsibble(spec = (State / Region) * Purpose)
+
+tourism_feat <- tourism_shared |>
+  features(Trips, feat_stl)
+
+p1 <- tourism_shared |>
+  ggplot(aes(x = Quarter, y = Trips)) +
+  geom_line(aes(group = Region), alpha = 0.5) +
+  facet_wrap(~ Purpose, scales = "free_y") +
+  theme(axis.title = element_text(family="Helvetica"),
+        axis.text = element_text(family="Helvetica"),
+        legend.title = element_text(family="Helvetica"),
+        legend.text = element_text(family="Helvetica"))
+p2 <- tourism_feat |>
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year)) +
+  geom_point(aes(group = Region)) +
+  xlab("trend") + ylab("season") +
+  theme(axis.title = element_text(family="Helvetica"),
+        axis.text = element_text(family="Helvetica"),
+        legend.title = element_text(family="Helvetica"),
+        legend.text = element_text(family="Helvetica"),
+        plot.title = element_text(family="Helvetica"))
+```
+:::
+::: {.column width="20%"}
+
+The shared data objects from `crosstalk` make linking between plots easier!
+
+:::
+::::
+
+## {.smaller}
+
+```{r}
+#| fig-height: 5
+#| fig-width: 10
+#| out-width: 90%
+#| code-fold: true
+subplot(
+    ggplotly(p1, tooltip = "Region", width = 1200, height = 600) |>
+  config(displayModeBar = FALSE),
+    ggplotly(p2, tooltip = "Region", width = 1000, height = 500) |>
+  config(displayModeBar = FALSE),
+    nrows = 1, widths=c(0.5, 0.5), heights=1) |>
+  highlight(dynamic = FALSE)
+```
+
+## Case study: mapping {.transition-slide .center style="text-align: center;"}
+
+## Constructing a choropleth
+
+```{r}
+#| code-fold: true
+# Read the data
+# Replace null with 0, for three LGAs
+# Convert to long form to join with polygons
+# Make the date variables a proper date
+# Set NAs to 0, this is a reasonable assumption
+covid <- read_csv("data/melb_lga_covid.csv") |>
+  mutate(Buloke = as.numeric(ifelse(Buloke == "null", "0", Buloke))) |>
+   mutate(Hindmarsh = as.numeric(ifelse(Hindmarsh == "null", "0", Hindmarsh))) |>
+   mutate(Towong = as.numeric(ifelse(Towong == "null", "0", Towong))) |>
+  pivot_longer(cols = Alpine:Yarriambiack, names_to="NAME", values_to="cases") |>
+  mutate(Date = ydm(paste0("2020/",Date))) |>
+  mutate(cases=replace_na(cases, 0))
+```
+
+```{r}
+#| code-fold: true
+
+# Case counts are cumulative, keep only latest
+covid <- covid |>
+  filter(Date == ymd("2020-10-20"))
+```
+
+```{r}
+#| eval: false
+#| echo: false
+#| message: false
+# Read the LGA data from strayr package. 
+# This has LGAs for all of Australia. 
+# Need to filter out Victoria LGAs, avoiding LGAs 
+# from other states with same name, and make the names
+# match covid data names. The regex equation is
+# removing () state and LGA type text strings
+# Good reference: https://r-spatial.github.io/sf/articles/sf1.html
+# remotes::install_github("runapp-aus/strayr")
+library(strayr)
+library(ggthemes)
+library(sf)
+lga <- strayr::read_absmap("lga2018") |>
+  rename(lga = lga_name_2018) |>
+  filter(state_name_2016 == "Victoria") 
+save(lga, file="data/lga.rda")
+```
+
+```{r}
+#| echo: false
+#| eval: false
+ggplot(lga) + geom_sf() + theme_map()
+
+lga_sm <- ms_simplify(lga)
+save(lga_sm, file="data/lga_sm.rda")
+ggplot(lga_sm) + geom_sf() + theme_map()
+```
+
+:::: {.columns}
+::: {.column width=70%}
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+load("data/lga.rda")
+
+covid_tot <- covid |>
+  left_join(lga, by=c("NAME" = "lga")) |>
+  st_as_sf()
+
+# Make choropleth map, with appropriate colour palette
+cm1 <- ggplot(covid_tot) + 
+  geom_sf(aes(fill = cases, label = NAME),
+    colour="grey80") + 
+  scale_fill_distiller("Cases", 
+    palette = "PuBuGn",
+    direction=1) + 
+  theme_map() +
+  theme(legend.position="bottom")
+cm1
+# Make it interactive
+# plotly::ggplotly() 
+```
+:::
+::: {.column width=30%}
+
+Numerical value of statistic is attached to the respective polygon.
+
+<br><br>
+But a problem, especially for Australia is that small geographic, but high population density, areas get lost.
+:::
+::::
+
+## Making the small regions visible [(1/2)]{.f50}
+
+:::: {.columns}
+::: {.column width=70%}
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+pop <- read_xlsx("data/VIF2019_Population_Service_Ages_LGA_2036.xlsx", sheet=3, skip=13, col_names = FALSE) |>
+  select(`...4`, `...22`) |>
+  rename(lga = `...4`, pop=`...22`) |>
+  filter(lga != "Unincorporated Vic") |> 
+  mutate(lga = str_replace(lga, " \\(.+\\)", "")) |>
+  mutate(lga = ifelse(lga == "Colac-Otway", "Colac Otway", lga)) 
+
+covid_tot <- covid_tot |>
+  left_join(pop, by=c("NAME" = "lga")) 
+
+covid_tot <- covid_tot |>
+  mutate(cases_per10k = cases/pop*10000,
+         lcases = log10(cases + 1)) 
+
+covid_tot_carto <- covid_tot |> 
+  st_transform(3395) |> 
+  cartogram_cont("pop") |>
+  st_transform("WGS84")   
+  
+covid_tot_carto <- st_cast(covid_tot_carto, "MULTIPOLYGON") 
+
+cm2 <- ggplot(covid_tot_carto) + 
+  geom_sf(aes(fill = cases, label=NAME),
+    colour="grey80") + 
+  scale_fill_distiller("Cases", palette = "PuBuGn",
+                       direction=1) + 
+  theme_map() +
+  theme(legend.position="bottom")  
+cm2 
+```
+:::
+::: {.column width=30%}
+
+A cartogram expands a geographic are relative to the population in the area. 
+
+<br><br>
+See more on [cartograms here](https://go-cart.io/cartogram). 
+
+A better solution for Australia is needed, though.
+:::
+::::
+
+## Making the small regions visible [(2/2)]{.f50}
+
+:::: {.columns}
+::: {.column width=70%}
+
+```{r}
+#| code-fold: true
+# Placement of hexmaps depends on position relative to
+# Melbourne central
+data(capital_cities)
+covid_hexmap <- create_hexmap(
+  shp = covid_tot,
+  sf_id = "NAME",
+  focal_points = capital_cities, verbose = TRUE)
+
+# Hexagons are made with the `fortify_hexagon` function
+covid_hexmap_poly <- covid_hexmap |>
+  fortify_hexagon(sf_id = "NAME", hex_size = 0.1869) |>
+  left_join(covid_tot, by="NAME") # hexmap code removed cases!
+cm3 <- ggplot() +
+  geom_sf(data=covid_tot, 
+          fill = "white", colour = "grey80", size=0.1) +
+  geom_polygon(data=covid_hexmap_poly, 
+               aes(x=long, y=lat, group=hex_id, 
+                   fill = cases, 
+                   colour = cases,
+                   label=NAME), size=0.2) +
+  scale_fill_distiller("Cases", palette = "PuBuGn",
+                       direction=1) +
+  scale_colour_distiller("Cases", palette = "PuBuGn",
+                       direction=1) +
+  theme_map() +
+  theme(legend.position="bottom")
+cm3
+# ggplotly()
+```
+
+:::
+
+::: {.column width=30%}
+
+<br>
+Learn more about hexagon tiling that works better for Australia [here](https://srkobakian.github.io/sugarbag/).
+:::
+::::
+
+## Adding interaction
+
+::: {.panel-tabset}
+
+## Choropleth
+
+```{r}
+#| code-fold: true
+cm1 <- cm1 + theme(legend.position = "none")
+ggplotly(cm1, width=800, height=600) |>
+  config(displayModeBar = FALSE)
+```
+
+## Cartogram
+
+```{r}
+#| code-fold: true
+cm2 <- cm2 + theme(legend.position = "none")
+ggplotly(cm2, width=800, height=600) |>
+  config(displayModeBar = FALSE)
+```
+
+## Hexagon tile
+
+```{r}
+#| code-fold: true
+cm3 <- cm3 + theme(legend.position = "none")
+ggplotly(cm3, width=800, height=600) |>
+  config(displayModeBar = FALSE)
+```
+
+:::
+
+
+## Animation {.transition-slide .center style="text-align: center;"}
+
+## Explanation
+
+- `gganimate` (Lin-Pederson) allows to make and save animations: [gganimate cheat sheet](https://rstudio.github.io/cheatsheets/gganimate.pdf)
+- Animations are different from interactive graphics in that the viewer does not have any control
+- useful for different important stages of a visualization (e.g. time) and to keep track of how different visualizations are related 
+- [can also be used in talks ]{.fragment}
+
+## An example animation {.smaller}
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: 80%
+#| eval: false
+ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+  geom_point(alpha = 0.7) +
+  scale_colour_manual(values = country_colors) +
+  scale_size("Population size", range = c(2, 12), breaks=c(1*10^8, 2*10^8, 5*10^8, 10^9, 2*20^9)) +
+  scale_x_log10() +
+  guides(colour = "none") +
+  facet_wrap(~continent) +
+  theme(legend.position = "bottom") +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+  gganimate::transition_time(year) +
+  gganimate::ease_aes('linear')
+```
+
+Countries are colored manually by `country_colors` (hue shows continent, saturation is individual country)
+
+## `gganimate`
+
+1. Start with a ggplot2 specification 
+2. Add layers with graphical primitives (geoms)
+3. Add formatting specifications
+4. Add animation specifications
+
+## A simple example {.smaller}
+
+1. Start by passing the data to ggplot
+
+```{r}
+#| label: plot1
+#| eval: true
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "1"
+ggplot(economics) #<<
+
+```
+
+::: bottom
+Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
+:::
+
+## A simple example {.smaller}
+
+2. add the mapping
+
+```{r}
+#| label: plot2
+#| eval: true
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "2"
+ggplot(economics) +
+  aes(date, unemploy) #<<
+```
+::: bottom
+Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
+:::
+
+
+## A simple example {.smaller}
+
+3. Add a graphical primitive, let's do a line 
+
+```{r}
+#| label: plot3
+#| eval: true
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "3"
+ggplot(economics) +
+  aes(date, unemploy) +
+  geom_line() #<<
+```
+
+
+::: bottom
+Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
+:::
+
+## A simple example {.smaller}
+
+
+4. Just one extra line turns this into an animation!
+
+```{r}
+#| label: plot5-anim
+#| eval: false
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "4"
+ggplot(economics) +
+  aes(date, unemploy) +
+  geom_line() +
+  transition_reveal(date) #<<
+```
+
+::: bottom
+Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
+:::
+
+
+## A not-so-simple example {.smaller}
+
+Using the the datasaurus dozen, again, we first pass in the dataset to ggplot
+
+```{r}
+#| label: plot5
+#| eval: false
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "1"
+ggplot(datasaurus_dozen)#<<
+
+```
+
+## A not-so-simple example {.smaller}
+
+For each dataset we have x and y values, in addition we can map dataset to color
+
+```{r}
+#| label: plot6
+#| eval: false
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "2"
+ggplot(datasaurus_dozen) +
+  aes(x, y, color=dataset) #<<
+```
+
+## A not-so-simple example {.smaller}
+
+Trying a simple scatter plot first, but there is too much information
+
+
+```{r}
+#| label: plot7
+#| eval: false
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "3"
+ggplot(datasaurus_dozen) +
+  aes(x, y, color=dataset) +
+  geom_point() + #<<
+  xlim(c(0,100)) + ylim(c(0,100)) +
+  coord_equal() 
+```
+
+## A not-so-simple example {.smaller}
+
+We can use facets to split up by dataset, revealing the different distributions
+
+```{r}
+#| label: plot8
+#| eval: false
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 9
+#| out-width: 100%
+#| output-location: column
+#| code-line-numbers: "4"
+ggplot(datasaurus_dozen) +
+  aes(x, y, color=dataset) +
+  geom_point() +
+  facet_wrap(~dataset) + #<<
+  xlim(c(0,100)) + ylim(c(0,100)) +
+  coord_equal() +
+  theme(legend.position = "none")
+```
+
+## A not-so-simple example {.smaller}
+
+We can just as easily turn it into an animation, transitioning between dataset states! 
+
+```{r}
+#| label: plot9
+#| eval: false
+#| code-fold: true
+#| output-location: column
+#| code-line-numbers: "6,7"
+ggplot(datasaurus_dozen) +
+  aes(x, y) +
+  geom_point() +
+  xlim(c(0,100)) + ylim(c(0,100)) +
+  coord_equal() +
+  transition_states(dataset, 2, 3) + #<<
+  labs(title = "Dataset: {closest_state}") #<<
+
+```
+
+## Controlling an animation {.incremental .smaller}
+
+We control plot movement with (a grammar of animation):
+
+- Transitions: `transition_*()` define how the data should be spread out and how it relates to itself across time.
+- Views: `view_*()` defines how the positional scales should change along the animation.
+- Shadows: `shadow_*()` defines how data from other points in time should be presented in the given point in time.
+- Entrances/Exits: `enter_*()` and `exit_*()` define how new data should appear and how old data should disappear during the course of the animation.
+- Easing: `ease_aes()` defines how different aesthetics should be eased during transitions.
 
 
 ## Resources
