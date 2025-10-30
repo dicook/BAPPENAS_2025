@@ -16,7 +16,7 @@ format:
     width: 1600
     height: 900
     margin: 0.05
-    embed-resources: true
+    embed-resources: false
 ---
 
 ```{r, include = FALSE}
@@ -1838,8 +1838,95 @@ harvest_nomiss
 
 ## Case study: pedestrian sensors [(1/3)]{.smallest}
 
+```{r}
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: 100%
+ped_QV <-  pedestrian |>
+  mutate(year = year(Date),
+         month = month(Date)) |>
+  dplyr::filter(Sensor == "QV Market-Elizabeth St (West)",
+                year == 2016, month %in% c(2:5))
+ggplot(ped_QV) +   
+    geom_line(aes(x=Time, y=Count)) +
+    facet_calendar(~Date) +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank(),
+        aspect.ratio = 0.5) 
+```
+
 ## Case study: pedestrian sensors [(2/3)]{.smallest}
 
+
+```{r echo=TRUE}
+has_gaps(pedestrian, .full = TRUE)
+ped_gaps <- pedestrian |> 
+  dplyr::filter(Sensor == "QV Market-Elizabeth St (West)") |>
+  count_gaps(.full = TRUE)
+ped_gaps
+ped_qvm_filled <- pedestrian |> 
+  dplyr::filter(Sensor == "QV Market-Elizabeth St (West)") |>
+  fill_gaps(.full = TRUE) |>
+  mutate(Date = as.Date(Date_Time, tz="Australia/Melbourne"),
+         Time = hour(Date_Time)) |>
+  mutate(year = year(Date),
+    month = month(Date)) 
+```
+
+There is a block of missing values on the last day of 2015. The other two missings correspond to an hour in April, when the clocks change from summer to regular time.
+
+```{r echo=TRUE}
+hol <- holiday_aus(2015:2016, state = "VIC")
+ped_qvm_filled <- ped_qvm_filled |> 
+  mutate(hol = is.weekend(Date)) |>
+  mutate(hol = if_else(Date %in% hol, TRUE, hol)) |>
+  mutate(Time = factor(Time))
+```
+
+```{r echo=TRUE, warning=FALSE}
+ped_qvm_lm <- lm(Count~Time*hol, data=ped_qvm_filled)
+```
+
+
+```{r echo=TRUE}
+ped_qvm_filled <- ped_qvm_filled |>
+  mutate(pCount = predict(ped_qvm_lm, ped_qvm_filled))
+```
+
+
+```{r}
+#| fig-width: 15
+#| fig-height: 3
+#| out-width: 100%
+ped_qvm_sub <- ped_qvm_filled |>
+  filter(Date > ymd("2015-12-17"), Date < ymd("2016-01-01")) 
+ggplot(ped_qvm_sub) +   
+    geom_line(aes(x=Date_Time, y=Count)) +
+    geom_line(data=filter(ped_qvm_sub, is.na(Count)), 
+                      aes(x=Date_Time, 
+                          y=pCount), 
+                      colour="seagreen3") +
+  scale_x_datetime("", date_breaks = "1 day", 
+                   date_labels = "%a %d") +
+  theme(aspect.ratio = 0.15)
+```
+
+```{r}
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: 50%
+ggplot() +   
+    geom_line(data=filter(ped_qvm_sub), 
+              aes(x=Time, y=Count, group=Date)) +
+    geom_line(data=filter(ped_qvm_sub, is.na(Count)), 
+                      aes(x=Time, 
+                          y=pCount, 
+                          group=Date), 
+                      colour="seagreen3",
+                      linewidth=2) +
+  facet_wrap(~hol) +
+  theme(aspect.ratio = 1)
+```
 ## Case study: pedestrian sensors [(3/3)]{.smallest}
 
 ## {.information-slide .center style="text-align: center;"}
