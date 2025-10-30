@@ -1080,10 +1080,10 @@ hotels |>
 
 ## Case study: hotel bookings [(2/10)]{.smallest}
 
-**Data splitting and re-sampling**
-
 :::: columns
 ::: column
+
+**Data splitting and re-sampling**
 
 Reserve 25% of the stays to the test set. The outcome variable children is pretty imbalanced so use a stratified random sample.
 
@@ -1111,12 +1111,12 @@ hotel_test  %>%
 :::
 ::::
 
-## Case study: hotel bookings [(2/10)]{.smallest}
-
-**Data splitting and re-sampling**
+## Case study: hotel bookings [(3/10)]{.smallest}
 
 :::: columns
 ::: column
+
+**Data splitting and re-sampling**
 
 The "other" set is further divided into training and validation sets. These two are used to build the model.
 
@@ -1128,15 +1128,723 @@ The test set is only used when the final model is decided.
 ```{r}
 #| code-fold: true
 set.seed(703)
-val_set <- validation_split(hotel_other, 
+hotel_val_set <- validation_split(hotel_other, 
                             strata = children, 
                             prop = 0.80)
-val_set
+hotel_val_set
 ```
 :::
 ::::
 
-## Forecasting
+## Case study: hotel bookings [(4/10)]{.smallest}
+
+:::: columns
+::: column
+
+**IDA**
+
+- Check for distribution of each variable
+- Check association between predictors
+
+:::
+::: column
+
+```{r}
+#| code-fold: true
+p1 <- ggplot(hotel_other, aes(x=children, y=lead_time)) +
+  geom_quasirandom()
+p2 <- ggplot(hotel_other, aes(x=children, y=stays_in_weekend_nights)) +
+  geom_quasirandom()
+p1 + p2 + plot_layout(ncol=2)
+```
+:::
+::::
+
+## Case study: hotel bookings [(5/10)]{.smallest}
+
+:::: columns
+::: column
+
+**IDA**
+
+- Check for distribution of each variable
+- Check association between predictors
+
+:::
+::: column
+
+```{r}
+#| code-fold: true
+p1 <- ggplot(hotel_other, aes(x=children, y=lead_time)) +
+  geom_quasirandom()
+p2 <- ggplot(hotel_other, aes(x=children, y=stays_in_weekend_nights)) +
+  geom_quasirandom()
+p1 + p2 + plot_layout(ncol=2)
+```
+:::
+::::
+
+
+
+## Case study: hotel bookings [(6/10)]{.smallest}
+
+:::: columns
+::: column
+
+**Model setup**
+
+Since the outcome variable is categorical, logistic regression is a reasonable choice. This fits an S-curve which essentially models proportion of classes (children v none) for different values of the predictors. Using `glmnet` allows for feature selection while training the model. 
+
+:::
+::: column
+
+::: {.panel-tabset}
+
+## model
+
+```{r}
+#| code-fold: true
+lr_mod <- 
+  logistic_reg(penalty = tune(), mixture = 1) %>% 
+  set_engine("glmnet")
+```
+
+## recipe
+
+```{r}
+#| code-fold: true
+holidays <- c("AllSouls", "AshWednesday", "ChristmasEve", "Easter", 
+              "ChristmasDay", "GoodFriday", "NewYearsDay", "PalmSunday")
+
+lr_recipe <- 
+  recipe(children ~ ., data = hotel_other) %>% 
+  step_date(arrival_date) %>% 
+  step_holiday(arrival_date, holidays = holidays) %>% 
+  step_rm(arrival_date) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_zv(all_predictors()) %>% 
+  step_normalize(all_predictors())
+```
+
+## workflow
+
+```{r}
+#| code-fold: true
+lr_workflow <- 
+  workflow() %>% 
+  add_model(lr_mod) %>% 
+  add_recipe(lr_recipe)
+```
+
+## tune
+
+```{r}
+#| code-fold: true
+lr_reg_grid <- tibble(penalty = 10^seq(-4, -1, length.out = 30))
+
+lr_reg_grid %>% top_n(-5) # lowest penalty values
+
+lr_reg_grid %>% top_n(5)  # highest penalty values
+```
+
+:::
+
+:::
+::::
+
+## Case study: hotel bookings [(7/10)]{.smallest}
+
+:::: columns
+::: column
+
+**Model training**
+
+Better performance for smaller penalty, means that all predictors have some importance for the model fit. 
+
+:::
+::: column
+
+::: {.panel-tabset}
+
+## tuning
+
+```{r}
+#| code-fold: true
+lr_res <- 
+  lr_workflow %>% 
+  tune_grid(hotel_val_set,
+            grid = lr_reg_grid,
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+```
+
+## summary
+
+```{r}
+#| code-fold: true
+lr_plot <- 
+  lr_res %>% 
+  collect_metrics() %>% 
+  ggplot(aes(x = penalty, y = mean)) + 
+  geom_point() + 
+  geom_line() + 
+  ylim(c(0.75, 0.9)) +
+  ylab("Area under the ROC Curve") +
+  scale_x_log10(labels = scales::label_number())
+
+lr_plot 
+```
+
+## best
+
+```{r}
+#| code-fold: true
+lr_best <- 
+  lr_res %>% 
+  collect_metrics() %>% 
+  arrange(penalty) %>% 
+  slice(12)
+lr_best
+```
+
+## ROC
+
+```{r}
+#| code-fold: true
+lr_auc <- 
+  lr_res %>% 
+  collect_predictions(parameters = lr_best) %>% 
+  roc_curve(children, .pred_children) %>% 
+  mutate(model = "Logistic Regression")
+
+autoplot(lr_auc)
+```
+
+:::
+
+:::
+
+::::
+
+## Case study: hotel bookings [(8/10)]{.smallest}
+
+:::: columns
+::: column
+
+**Alternative model**
+
+Random forest models are generalist fits. It combines the predictions from many trees, each one fitted with a random selection of variables (features) and a random sample of observations. 
+
+Because each tree splits on single variables, it is also robust to missing values by using the complete data efficiently.
+
+:::
+
+::: column
+
+::: {.panel-tabset}
+
+## model
+
+```{r}
+#| code-fold: true
+cores <- parallel::detectCores()
+cores
+```
+
+```{r}
+#| code-fold: true
+rf_mod <- 
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
+  set_engine("ranger", num.threads = cores) %>% 
+  set_mode("classification")
+```
+
+## recipe
+
+```{r}
+#| code-fold: true
+rf_recipe <- 
+  recipe(children ~ ., data = hotel_other) %>% 
+  step_date(arrival_date) %>% 
+  step_holiday(arrival_date) %>% 
+  step_rm(arrival_date) 
+```
+
+## workflow
+
+```{r}
+#| code-fold: true
+rf_workflow <- 
+  workflow() %>% 
+  add_model(rf_mod) %>% 
+  add_recipe(rf_recipe)
+```
+
+```{r}
+#| code-fold: true
+rf_mod
+
+extract_parameter_set_dials(rf_mod)
+```
+
+## tune
+
+```{r}
+#| eval: false
+# This takes a while so the results are saved
+set.seed(1012)
+rf_res <- 
+  rf_workflow %>% 
+  tune_grid(hotel_val_set,
+            grid = 25,
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+save(rf_res, file="data/rf_res.rda")
+```
+
+```{r}
+#| code-fold: true
+load("data/rf_res.rda")
+rf_res %>% 
+  show_best(metric = "roc_auc")
+```
+
+## ROC
+
+```{r}
+#| code-fold: true
+autoplot(rf_res)
+```
+
+```{r}
+#| code-fold: true
+rf_best <- 
+  rf_res %>% 
+  select_best(metric = "roc_auc")
+rf_best
+```
+
+```{r}
+#| code-fold: true
+rf_res %>% 
+  collect_predictions()
+```
+
+```{r}
+#| code-fold: true
+rf_auc <- 
+  rf_res %>% 
+  collect_predictions(parameters = rf_best) %>% 
+  roc_curve(children, .pred_children) %>% 
+  mutate(model = "Random Forest")
+```
+
+:::
+:::
+::::
+
+## Case study: hotel bookings [(9/10)]{.smallest}
+
+:::: columns
+::: column
+
+**Choose the best model**
+
+:::
+::: column
+
+::: {.panel-tabset}
+
+## ROC
+
+```{r}
+#| code-fold: true
+bind_rows(rf_auc, lr_auc) %>% 
+  ggplot(aes(x = 1 - specificity, y = sensitivity, col = model)) + 
+    geom_path(lwd = 1.5, alpha = 0.8) +
+    geom_abline(lty = 3) + 
+    coord_equal() + 
+    scale_color_viridis_d(option = "plasma", end = .6)
+```
+
+## best
+
+```{r}
+#| code-fold: true
+# the last model
+last_rf_mod <- 
+  rand_forest(mtry = 8, min_n = 7, trees = 1000) %>% 
+  set_engine("ranger", num.threads = cores, importance = "impurity") %>% 
+  set_mode("classification")
+
+# the last workflow
+last_rf_workflow <- 
+  rf_workflow %>% 
+  update_model(last_rf_mod)
+
+# the last fit
+set.seed(345)
+last_rf_fit <- 
+  last_rf_workflow %>% 
+  last_fit(splits)
+
+last_rf_fit
+
+```
+
+```{r}
+#| code-fold: true
+last_rf_fit %>% 
+  collect_metrics()
+
+```
+
+## vip
+
+```{r}
+#| code-fold: true
+last_rf_fit %>% 
+  extract_fit_parsnip() %>% 
+  vip(num_features = 20)
+```
+
+## final
+
+```{r}
+#| code-fold: true
+last_rf_fit %>% 
+  collect_predictions() %>% 
+  roc_curve(children, .pred_children) %>% 
+  autoplot()
+```
+
+:::
+:::
+::::
+
+
+## Case study: hotel bookings [(10/10)]{.smallest}
+
+:::: columns
+::: column
+
+**Diagnostics and summaries**
+
+:::
+::: column
+:::
+
+::::
+
+## {.information-slide .center style="text-align: center;"}
+
+Tidy models makes it easy to compare and contrast fits, and to follow all the steps in pre-processing and fitting. Many case studies and examples to follow on the web site.
+
+More work is needed to check assumptions, and to summarise the fit well.
+
+## Temporal data {.transition-slide .center style="text-align: center;"}
+
+## `tsibble`: R temporal object {background-image="https://tsibble.tidyverts.org/reference/figures/logo.png" background-position="5% 15%" background-size="10%"}
+
+<br><br><br><br>
+The `tsibble` package provides a data infrastructure for tidy temporal data with wrangling tools. Adapting the tidy data principles, `tsibble` is a data- and model-oriented object. In `tsibble`:
+
+- [Index]{.monash-blue2} is a variable with inherent ordering from past to present.
+- [Key]{.monash-blue2} is a set of variables that define observational units over time.
+- Each observation should be [uniquely identified]{.monash-blue2} by index and key.
+- Each observational unit should be measured at a [common interval]{.monash-blue2}, if regularly spaced.
+
+## Regular vs irregular
+
+:::: {.columns}
+::: {.column}
+
+::: {style="font-size: 80%l"}
+
+The Melbourne pedestrian sensor data has a [regular]{.monash-blue2} period. Counts are provided for every hour, at numerous locations.
+
+```{r}
+#| label: ped-reg
+options(width=55)
+pedestrian 
+```
+
+:::
+
+:::
+::: {.column}
+
+::: {style="font-size: 80%l"}
+
+::: {.fragment}
+In contrast, the US flights data, below, is [irregular]{.monash-blue2}. 
+
+```{r}
+#| label: nycflights
+options(width=55)
+flights_ts <- flights |>
+  mutate(dt = ymd_hm(paste(paste(year, month, day, sep="-"), 
+                           paste(hour, minute, sep=":")))) |>
+  as_tsibble(index = dt, key = c(origin, dest, carrier, tailnum), regular = FALSE)
+flights_ts 
+```
+
+:::
+:::
+:::
+::::
+
+::: {.fragment}
+[Is pedestrian traffic really regular?]{.monash-orange2}
+:::
+
+## Getting started
+
+::: {.info}
+Wrangling prior to analysing temporal data includes:
+
+- **aggregate** by temporal unit. 
+- **construct temporal units** to study seasonality, such as month, week, day of the week, quarter, ...
+- checking and imputing **missings**.
+:::
+
+<br>
+For the airlines data, you can aggregate by multiple quantities, eg number of arrivals, departures, average hourly arrival delay and departure delays. 
+
+## Aggregating
+
+:::: {.columns}
+::: {.column}
+
+The US flights data already has some temporal components created, so aggregating by these is easy. Here is departure delay.
+
+```{r}
+#| code-fold: true
+flights_mth <- flights_ts |> 
+  as_tibble() |>
+  group_by(month, origin) |>
+  summarise(dep_delay = mean(dep_delay, na.rm=TRUE)) |>
+  as_tsibble(key=origin, index=month)
+ggplot(flights_mth, aes(x=month, y=dep_delay, colour=origin)) +
+  geom_point() +
+  geom_smooth(se=F) +
+  scale_x_continuous("", breaks = seq(1, 12, 1), 
+                     labels=c("J","F","M","A","M","J",
+                              "J","A","S","O","N","D")) +
+  scale_y_continuous("av dep delay (mins)", limits=c(0, 25)) +
+  theme(aspect.ratio = 0.5)
+```
+
+:::
+::: {.column}
+
+Aggregate by month, but examine arrival delays.
+
+```{r}
+#| code-fold: true
+flights_mth_arr <- flights_ts |> 
+  as_tibble() |>
+  group_by(month, origin) |>
+  summarise(arr_delay = mean(arr_delay, na.rm=TRUE)) |>
+  as_tsibble(key=origin, index=month)
+ggplot(flights_mth_arr, aes(x=month, y=arr_delay, colour=origin)) +
+  geom_point() +
+  geom_smooth(se=F) +
+  scale_x_continuous("", breaks = seq(1, 12, 1), 
+                     labels=c("J","F","M","A","M","J",
+                              "J","A","S","O","N","D")) +
+  scale_y_continuous("av arr delay (mins)", limits=c(0, 25)) +
+  theme(aspect.ratio = 0.5)
+```
+
+:::
+::::
+
+## Constructing temporal units
+
+:::: {.columns}
+::: {.column style="font-size: 80%;"}
+
+Week day vs weekend would be expected to have different patterns of delay, but this is not provided. 
+
+```{r}
+#| code-fold: true
+#| fig-height: 8
+#| fig-width: 5
+#| out-width: 48%
+flights_wk <- flights_ts |> 
+  as_tibble() |>
+  mutate(wday = wday(dt, label=TRUE, week_start = 1)) |>
+  group_by(wday, origin) |>
+  summarise(dep_delay = mean(dep_delay, na.rm=TRUE)) |>
+  mutate(weekend = ifelse(wday %in% c("Sat", "Sun"), "yes", "no")) |>
+  as_tsibble(key=origin, index=wday)
+ggplot(flights_wk, aes(x=wday, y=dep_delay, fill=weekend)) +
+  geom_col() +
+  facet_wrap(~origin, ncol=1, scales="free_y") +
+  xlab("") +
+  ylab("av dep delay (mins)") +
+  theme(aspect.ratio = 0.5, legend.position = "none")
+```
+
+:::
+::: {.column style="font-size: 80%;"}
+
+::: {.fragment}
+Be careful of times!
+
+```{r}
+#| code-fold: true
+flights_airtm <- flights |>
+  mutate(dep_min = dep_time %% 100,
+         dep_hr = dep_time %/% 100,
+         arr_min = arr_time %% 100,
+         arr_hr = arr_time %/% 100) |>
+  mutate(dep_dt = ymd_hm(paste(paste(year, month, day, sep="-"), 
+                           paste(dep_hr, dep_min, sep=":")))) |>
+  mutate(arr_dt = ymd_hm(paste(paste(year, month, day, sep="-"), 
+                           paste(arr_hr, arr_min, sep=":")))) |>
+  mutate(air_time2 = as.numeric(difftime(arr_dt, dep_dt)))
+
+fp <- flights_airtm |> 
+  sample_n(3000) |>
+  ggplot(aes(x=air_time, y=air_time2, label = paste(origin, dest))) + 
+    geom_abline(intercept=0, slope=1) +
+    geom_point()
+ggplotly(fp, width=500, height=500)
+```
+
+Why is this not what we expect?
+:::
+
+:::
+::::
+
+## Checking and filling missings [(1/4)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| label: missings-simple
+set.seed(328)
+harvest <- tsibble(
+  year = c(2010, 2011, 2013, 2011, 
+           2012, 2013),
+  fruit = rep(c("kiwi", "cherry"), 
+              each = 3),
+  kilo = sample(1:10, size = 6),
+  key = fruit, index = year
+)
+harvest
+```
+
+:::
+::: {.column}
+
+```{r}
+#| label: missing-gaps
+has_gaps(harvest, .full = TRUE) 
+```
+
+<br>
+[Can you see the gaps in time?]{.monash-orange2}
+
+Both levels of the key have missings.
+
+:::
+::::
+
+## Checking and filling missings [(2/4)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| label: missings-simple
+#| echo: false
+```
+
+:::
+::: {.column}
+
+```{r}
+#| label: count-gaps
+count_gaps(harvest,  .full=TRUE)
+```
+
+<br>
+One missing in each level, although it is a different year.
+
+<br> <br>
+
+Notice how `tsibble` handles this summary so neatly.
+
+:::
+::::
+
+## Checking and filling missings [(3/4)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| label: missings-simple
+#| echo: false
+```
+
+:::
+::: {.column}
+
+Make the implicit missing values [explicit]{.monash-blue2}.
+
+```{r}
+#| label: fill-gaps
+harvest <- fill_gaps(harvest, 
+                     .full=TRUE) 
+harvest 
+```
+
+:::
+::::
+
+## Checking and filling missings [(4/4)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| label: missings-simple
+#| echo: false
+```
+
+:::
+::: {.column}
+
+We have already seen `na_ma()` function, that imputes using a moving average. Alternatively, `na_interpolation()` uses the previous and next values to impute.
+
+```{r}
+#| label: impute-gaps
+harvest_nomiss <- harvest |> 
+  group_by(fruit) |> 
+  mutate(kilo = 
+    na_interpolation(kilo)) |> 
+  ungroup()
+harvest_nomiss 
+```
+
+:::
+::::
+
+## Case study: pedestrian sensors [(1/3)]{.smallest}
+
+## Case study: pedestrian sensors [(2/3)]{.smallest}
+
+## Case study: pedestrian sensors [(3/3)]{.smallest}
+
+## {.information-slide .center style="text-align: center;"}
+
+The resources at [Forecasting: Principles and Practice (3e)](https://otexts.com/fpp3/) explains how to effectively do forecasting.
 
 ## Resources
 
