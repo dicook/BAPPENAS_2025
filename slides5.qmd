@@ -135,6 +135,8 @@ ggplotly(gp, width=700, height=550) |>
 :::
 ::: {.column}
 
+leaflet example
+
 :::
 ::::
 

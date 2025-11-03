@@ -35,6 +35,12 @@ load("data/french_fries.rda")
 
 ## Outline
 
+- Framing problems
+- Tidy models formulation
+- Case study: hotel bookings
+- Unsupervised learning
+- Temporal data and forecasting
+
 ## Framing the problem
 
 1. **Supervised learning**
@@ -624,7 +630,7 @@ conf_mat(a2, pred, y, dnn=c("Truth", "Pred"))
 ```{r}
 # Write out the confusion matrix in standard form
 #| label: oconfusion-matrix-tidy
-cm <- a2 %>% count(y, pred) |>
+cm <- a2 |> count(y, pred) |>
   group_by(y) |>
   mutate(cl_acc = n[pred==y]/sum(n)) 
 cm |>
@@ -648,7 +654,7 @@ More than two classes
 
 ```{r}
 # Write out the confusion matrix in standard form
-cm3 <- a3 %>% count(y, pred) |>
+cm3 <- a3 |> count(y, pred) |>
   group_by(y) |>
   mutate(cl_err = n[pred==y]/sum(n)) 
 cm3 |>
@@ -813,11 +819,12 @@ NOTE, WE CAN PLOT THESE THINGS IN HIGH DIMENSIONS. But this is for another day.
 
 :::: {.columns}
 ::: {.column}
-```{r echo=FALSE}
+```{r}
 #| label: data-in-model-space1
 #| fig-width: 4
 #| fig-height: 4
 #| out-width: 60%
+#| code-fold: true
 w <- read_csv("data/sine-curve.csv") |>
   mutate(cl = factor(cl))
 w_rf <- randomForest(cl~x1+x2, data=w, ntree=200)
@@ -836,11 +843,12 @@ w_rf_pred |>
 :::
 ::: {.column}
 
-```{r echo=FALSE}
+```{r}
 #| label: data-in-model-space2
 #| fig-width: 4
 #| fig-height: 4
 #| out-width: 60%
+#| code-fold: true
 w_lda <- lda(cl~x1+x2, data=w)
 w_lda_pred <- predict(w_lda, w, method="predictive")$posterior |>
   as_tibble(.name_repair="unique")
@@ -1008,6 +1016,22 @@ ggplot(lineup(null_lm(tip ~ total_bill,
 
 ## Re-sampling statistics
 
+:::: {.columns}
+::: {.column}
+Techniques for assessing behaviour with new samples, and measuring the variability of models and predictions.
+
+- Leave-one-out (algebraic measures typically) - outmoded
+- **Cross-validation**: Multiple splits to repeatedly use one for training and the other for testing, to decide on best model parameters.
+- **Bootstrap**: sample the sample with replacement. Mostly used to compute confidence intervals for estimates.
+
+:::
+::: {.column}
+
+- **Permutation**: sample the values on one variable to break associations with other variables while keeping marginals fixed. Mostly used for conducting hypothesis tests. 
+- **Simulation**: sample from know distribution, or a fitted model. Used to check goodness-of-fit.
+
+:::
+::::
 
 ## Tidy models {.transition-slide .center style="text-align: center;"}
 
@@ -1099,13 +1123,13 @@ hotel_other <- training(splits)
 hotel_test  <- testing(splits)
 
 # training set proportions by children
-hotel_other %>% 
-  count(children) %>% 
+hotel_other |> 
+  count(children) |> 
   mutate(prop = n/sum(n))
 
 # test set proportions by children
-hotel_test  %>% 
-  count(children) %>% 
+hotel_test  |> 
+  count(children) |> 
   mutate(prop = n/sum(n))
 ```
 :::
@@ -1213,7 +1237,7 @@ Since the outcome variable is categorical, logistic regression is a reasonable c
 ```{r}
 #| code-fold: true
 lr_mod <- 
-  logistic_reg(penalty = tune(), mixture = 1) %>% 
+  logistic_reg(penalty = tune(), mixture = 1) |> 
   set_engine("glmnet")
 ```
 
@@ -1225,12 +1249,12 @@ holidays <- c("AllSouls", "AshWednesday", "ChristmasEve", "Easter",
               "ChristmasDay", "GoodFriday", "NewYearsDay", "PalmSunday")
 
 lr_recipe <- 
-  recipe(children ~ ., data = hotel_other) %>% 
-  step_date(arrival_date) %>% 
-  step_holiday(arrival_date, holidays = holidays) %>% 
-  step_rm(arrival_date) %>% 
-  step_dummy(all_nominal_predictors()) %>% 
-  step_zv(all_predictors()) %>% 
+  recipe(children ~ ., data = hotel_other) |> 
+  step_date(arrival_date) |> 
+  step_holiday(arrival_date, holidays = holidays) |> 
+  step_rm(arrival_date) |> 
+  step_dummy(all_nominal_predictors()) |> 
+  step_zv(all_predictors()) |> 
   step_normalize(all_predictors())
 ```
 
@@ -1239,8 +1263,8 @@ lr_recipe <-
 ```{r}
 #| code-fold: true
 lr_workflow <- 
-  workflow() %>% 
-  add_model(lr_mod) %>% 
+  workflow() |> 
+  add_model(lr_mod) |> 
   add_recipe(lr_recipe)
 ```
 
@@ -1250,9 +1274,9 @@ lr_workflow <-
 #| code-fold: true
 lr_reg_grid <- tibble(penalty = 10^seq(-4, -1, length.out = 30))
 
-lr_reg_grid %>% top_n(-5) # lowest penalty values
+lr_reg_grid |> top_n(-5) # lowest penalty values
 
-lr_reg_grid %>% top_n(5)  # highest penalty values
+lr_reg_grid |> top_n(5)  # highest penalty values
 ```
 
 :::
@@ -1279,7 +1303,7 @@ Better performance for smaller penalty, means that all predictors have some impo
 ```{r}
 #| code-fold: true
 lr_res <- 
-  lr_workflow %>% 
+  lr_workflow |> 
   tune_grid(hotel_val_set,
             grid = lr_reg_grid,
             control = control_grid(save_pred = TRUE),
@@ -1291,8 +1315,8 @@ lr_res <-
 ```{r}
 #| code-fold: true
 lr_plot <- 
-  lr_res %>% 
-  collect_metrics() %>% 
+  lr_res |> 
+  collect_metrics() |> 
   ggplot(aes(x = penalty, y = mean)) + 
   geom_point() + 
   geom_line() + 
@@ -1308,9 +1332,9 @@ lr_plot
 ```{r}
 #| code-fold: true
 lr_best <- 
-  lr_res %>% 
-  collect_metrics() %>% 
-  arrange(penalty) %>% 
+  lr_res |> 
+  collect_metrics() |> 
+  arrange(penalty) |> 
   slice(12)
 lr_best
 ```
@@ -1320,9 +1344,9 @@ lr_best
 ```{r}
 #| code-fold: true
 lr_auc <- 
-  lr_res %>% 
-  collect_predictions(parameters = lr_best) %>% 
-  roc_curve(children, .pred_children) %>% 
+  lr_res |> 
+  collect_predictions(parameters = lr_best) |> 
+  roc_curve(children, .pred_children) |> 
   mutate(model = "Logistic Regression")
 
 autoplot(lr_auc)
@@ -1349,6 +1373,8 @@ Because each tree splits on single variables, it is also robust to missing value
 
 ::: column
 
+::: {style="font-size: 70%;"}
+
 ::: {.panel-tabset}
 
 ## model
@@ -1360,21 +1386,21 @@ cores
 ```
 
 ```{r}
-#| code-fold: true
+#| code-fold: false
 rf_mod <- 
-  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
-  set_engine("ranger", num.threads = cores) %>% 
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |> 
+  set_engine("ranger", num.threads = cores) |> 
   set_mode("classification")
 ```
 
 ## recipe
 
 ```{r}
-#| code-fold: true
+#| code-fold: false
 rf_recipe <- 
-  recipe(children ~ ., data = hotel_other) %>% 
-  step_date(arrival_date) %>% 
-  step_holiday(arrival_date) %>% 
+  recipe(children ~ ., data = hotel_other) |> 
+  step_date(arrival_date) |> 
+  step_holiday(arrival_date) |> 
   step_rm(arrival_date) 
 ```
 
@@ -1383,8 +1409,8 @@ rf_recipe <-
 ```{r}
 #| code-fold: true
 rf_workflow <- 
-  workflow() %>% 
-  add_model(rf_mod) %>% 
+  workflow() |> 
+  add_model(rf_mod) |> 
   add_recipe(rf_recipe)
 ```
 
@@ -1395,14 +1421,15 @@ rf_mod
 extract_parameter_set_dials(rf_mod)
 ```
 
-## tune
+## tune 
 
 ```{r}
+#| code-fold: true
 #| eval: false
 # This takes a while so the results are saved
 set.seed(1012)
 rf_res <- 
-  rf_workflow %>% 
+  rf_workflow |> 
   tune_grid(hotel_val_set,
             grid = 25,
             control = control_grid(save_pred = TRUE),
@@ -1413,39 +1440,43 @@ save(rf_res, file="data/rf_res.rda")
 ```{r}
 #| code-fold: true
 load("data/rf_res.rda")
-rf_res %>% 
+rf_res |> 
   show_best(metric = "roc_auc")
 ```
 
-## ROC
-
 ```{r}
 #| code-fold: true
+#| out-width: 50%
 autoplot(rf_res)
 ```
+
+## summary
+
 
 ```{r}
 #| code-fold: true
 rf_best <- 
-  rf_res %>% 
+  rf_res |> 
   select_best(metric = "roc_auc")
 rf_best
 ```
 
 ```{r}
 #| code-fold: true
-rf_res %>% 
+rf_res |> 
   collect_predictions()
 ```
 
 ```{r}
 #| code-fold: true
 rf_auc <- 
-  rf_res %>% 
-  collect_predictions(parameters = rf_best) %>% 
-  roc_curve(children, .pred_children) %>% 
+  rf_res |> 
+  collect_predictions(parameters = rf_best) |> 
+  roc_curve(children, .pred_children) |> 
   mutate(model = "Random Forest")
 ```
+
+:::
 
 :::
 :::
@@ -1458,6 +1489,10 @@ rf_auc <-
 
 **Choose the best model**
 
+For the same false positive rate (predicting the observation to the target class, incorrectly), the random forest model has a higher true positive rate (correctly predicting the target class) than the logistic regression model.
+
+Most important variables are `average_daily_room_rate`, `reserved_room_type`, `assigned_room_type`, `lead_time`.
+
 :::
 ::: column
 
@@ -1467,7 +1502,7 @@ rf_auc <-
 
 ```{r}
 #| code-fold: true
-bind_rows(rf_auc, lr_auc) %>% 
+bind_rows(rf_auc, lr_auc) |> 
   ggplot(aes(x = 1 - specificity, y = sensitivity, col = model)) + 
     geom_path(lwd = 1.5, alpha = 0.8) +
     geom_abline(lty = 3) + 
@@ -1481,28 +1516,33 @@ bind_rows(rf_auc, lr_auc) %>%
 #| code-fold: true
 # the last model
 last_rf_mod <- 
-  rand_forest(mtry = 8, min_n = 7, trees = 1000) %>% 
-  set_engine("ranger", num.threads = cores, importance = "impurity") %>% 
+  rand_forest(mtry = 8, min_n = 7, trees = 1000) |> 
+  set_engine("ranger", num.threads = cores, importance = "impurity") |> 
   set_mode("classification")
 
 # the last workflow
 last_rf_workflow <- 
-  rf_workflow %>% 
+  rf_workflow |> 
   update_model(last_rf_mod)
-
-# the last fit
-set.seed(345)
-last_rf_fit <- 
-  last_rf_workflow %>% 
-  last_fit(splits)
-
-last_rf_fit
-
 ```
 
 ```{r}
 #| code-fold: true
-last_rf_fit %>% 
+#| eval: false
+# the last fit
+set.seed(345)
+last_rf_fit <- 
+  last_rf_workflow |> 
+  last_fit(splits)
+
+last_rf_fit
+save(last_rf_fit, file="data/last_rf_fit.rda")
+```
+
+```{r}
+#| code-fold: true
+load("data/last_rf_fit.rda")
+last_rf_fit |> 
   collect_metrics()
 
 ```
@@ -1511,8 +1551,8 @@ last_rf_fit %>%
 
 ```{r}
 #| code-fold: true
-last_rf_fit %>% 
-  extract_fit_parsnip() %>% 
+last_rf_fit |> 
+  extract_fit_parsnip() |> 
   vip(num_features = 20)
 ```
 
@@ -1520,9 +1560,9 @@ last_rf_fit %>%
 
 ```{r}
 #| code-fold: true
-last_rf_fit %>% 
-  collect_predictions() %>% 
-  roc_curve(children, .pred_children) %>% 
+last_rf_fit |> 
+  collect_predictions() |> 
+  roc_curve(children, .pred_children) |> 
   autoplot()
 ```
 
@@ -1538,8 +1578,49 @@ last_rf_fit %>%
 
 **Diagnostics and summaries**
 
+- Plot the training data to understand the model fit. (Not done here)
+- Plot the test data to understand where it likely errs on new data. 
+- Examine where the model misclassified the observation, to check if there is anything systematic.
 :::
 ::: column
+
+::: {.panel-tabset}
+
+## Predictions
+
+```{r}
+#| code-fold: true
+hotel_test_pred <- tibble(hotel_test) |>
+  mutate(
+    pchild_cl = last_rf_fit$.predictions[[1]]$.pred_class,
+    pchild_pc = last_rf_fit$.predictions[[1]]$.pred_children,
+    pchild_pn = last_rf_fit$.predictions[[1]]$.pred_none)
+hotel_test_pred |>
+  select(pchild_pc, pchild_pn, pchild_cl) |>
+  ggplot(aes(x=pchild_pc, 
+             fill=pchild_cl, 
+             colour=pchild_cl)) +
+    geom_density()
+```
+
+## Errors
+
+```{r}
+#| code-fold: true
+hotel_test_pred <- hotel_test_pred |>
+  mutate(error = if_else(children != pchild_cl,
+                         "yes", "no")) 
+ggplot(hotel_test_pred, aes(x=children, 
+                            y=average_daily_rate,
+                            colour = children)) +
+  geom_boxplot() + 
+  scale_x_discrete("", labels = c("C", "N")) +
+  facet_grid(error~reserved_room_type) +
+  theme(legend.position = "none")
+```
+
+:::
+
 :::
 
 ::::
@@ -1549,6 +1630,273 @@ last_rf_fit %>%
 Tidy models makes it easy to compare and contrast fits, and to follow all the steps in pre-processing and fitting. Many case studies and examples to follow on the web site.
 
 More work is needed to check assumptions, and to summarise the fit well.
+
+## Unsupervised learning {.transition-slide .center style="text-align: center;"}
+
+## Dimension reduction
+
+:::: {.columns}
+::: {.column}
+
+1. Decide on necessary variables to keep, and unusable variables to drop. (All variables have to be **numeric**.)
+2. Handle missing values - all methods require **complete data**.
+3. Possibly transform variables to **symmetric**. Outliers can affect dimension reduction. (Similarly, clusters and nonlinear relationships can affect dimension reduction.)
+4. Choose method, typically **principal component analysis** for simplicity and interpretability.
+
+
+:::
+::: {.column}
+
+::: {.fragment}
+
+::: {style="font-size: 80%;"}
+
+Principal component analysis (PCA) produces a low-dimensional representation of a
+dataset. It finds a sequence of linear combinations of the
+variables that have [maximal variance]{.monash-orange2}, and are [mutually uncorrelated]{.monash-orange2}. It is an unsupervised learning method. 
+
+Use it, when:
+
+- You have too many predictors for a regression. Instead, we can use the first few principal components. 
+- Need to understand relationships between variables.
+- To make plots summarising the variation in a large number of variables.
+
+*Make sure you use standardised variables!*
+
+:::
+:::
+
+:::
+::::
+
+## Principal component analysis (PCA) [(1/3)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+
+- **new variables**: principal components are linear combinations (eigenvectors) of the original variables
+- **summary of variance**: total variance, variance of new variables (eigenvalues), proportion of total variance
+- choosing number of new variables
+- summary of new variables
+- checking what is left over
+
+:::
+::: {.column}
+
+`hotels` data:
+
+::: {style="font-size: 60%;"}
+
+```{r}
+#| code-fold: true
+glimpse(hotels)
+```
+
+Usable variables: `lead_time`, `stays_XXX`, `adults`, `is_repeated_guest`, `previous_XXX`, `booking_changes`,
+`days_in_waiting_list`, `average_daily_rate`, `total_of_special_requests`.
+
+```{r}
+#| code-fold: true
+hotels_dr <- hotels |>
+  select(lead_time:adults, 
+         is_repeated_guest:previous_bookings_not_canceled,
+         booking_changes, days_in_waiting_list,
+         average_daily_rate, total_of_special_requests)
+```
+
+:::
+
+
+:::
+::::
+
+## Principal component analysis (PCA) [(2/3)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+
+```{r}
+#| code-fold: true
+#| fig-width: 6
+#| fig-height: 4
+#| out-width: 100%
+hotels_pca <- prcomp(hotels_dr, scale=TRUE)
+hotels_pca$sdev^2
+mulgar::ggscree(hotels_pca, q=11)
+```
+
+:::
+::: {.column}
+
+```{r}
+#| code-fold: true
+#| fig-width: 6
+#| fig-height: 6
+#| out-width: 80%
+ggfortify:::autoplot.prcomp(hotels_pca, 
+                            loadings = TRUE,
+                            loadings.label = TRUE)
+```
+
+:::
+
+::::
+
+## Principal component analysis (PCA) [(3/3)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+PCA doesn't help to reduce dimension for the `hotels` data.
+
+However, it could be helpful to understand some of the other patterns in the data, e.g. outliers, clusters.
+:::
+
+::: {.column}
+
+```{r}
+#| code-fold: true
+#| fig-width: 6
+#| fig-height: 6
+#| out-width: 80%
+ggfortify:::autoplot.prcomp(hotels_pca, x=6, y=7,
+                            loadings = TRUE,
+                            loadings.label = TRUE)
+```
+:::
+::::
+
+## Cluster analysis
+
+:::: {.columns}
+::: {.column}
+- The aim of cluster analysis is to [group cases (objects) according to their similarity]{.monash-blue2} on the variables. It is also often called unsupervised classification, meaning that classification is the ultimate goal, but the classes (groups) are not known ahead of time. 
+- Hence the first task in cluster analysis is to construct the class information. To determine closeness we start with [measuring the interpoint distances]{.monash-blue2}.
+:::
+::: {.column}
+
+Common methods:
+
+- Hierarchical clustering, summarised by a dendrogram
+- $k$-means clustering
+- Model-based clustering
+
+and many variations. 
+
+Clustering is one of the hardest analytical methods because there is no known truth. Deciding on a solution requires external knowledge and understanding of geometry.
+:::
+::::
+
+## Case study: Australian tourism [(1/3)]{.smallest}
+
+:::: {.columns}
+::: {.column}
+- Survey of 563 Australian tourists, see [Dolnicar S, Grün B, Leisch F (2018)](https://link.springer.com/book/10.1007/978-981-10-8818-6)
+- Six different types of risks: recreational, health, career, financial, social and safety
+- Rated on a scale from 1 (never) to 5 (very often)
+
+Here we will use $k$-means, and examine solutions for $k=2,3,4,5$ clusters. We will use the [lionfish](https://mmedl94.github.io/lionfish/) R package, that is mostly written in python for highly reactive interactive graphics.
+
+:::
+::: {.column}
+
+Clustering tends to break up data according to it's shape.
+
+::: {layout-ncol=3}
+
+![](images/apple1.jpg){fig-alt="Whole apple and knife on cutting board."}
+![](images/apple2.jpg){fig-alt="Apple in two halves and knife on cutting board."}
+![](images/apple3.jpg){fig-alt="Apple sliced into eighths and knife on cutting board."}
+
+![](images/banana1.jpg){fig-alt="Whole banana and knife on cutting board."}
+![](images/banana2.jpg){fig-alt="Banana in half and knife on cutting board."}
+![](images/banana3.jpg){fig-alt="Banana cut into eight coin-shaped pieces and knife on cutting board."}
+
+:::
+
+:::
+
+::::
+
+## Case study: Australian tourism [(2/3)]{.smallest}
+
+:::: {.columns}
+::: {.column width=33%}
+
+![](images/risk_manual_cl2.png){width=450 fig-alt="Screenshot of the lionfish interface showing the two cluster result. The projection shown is where there is a fairly clean line separating the two clusters."}
+
+![](images/risk_manual_cl4.png){width=450 fig-alt="Screenshot of the lionfish interface showing the four cluster result. The projection shown is where there is a fairly clear separation the four clusters, along the direction of the largest spread of points, but the fattest part of the pear shape has been divided into two. So the four clusters are spread along the main direction of spread, with two side-by-side in the fat part of the pear."}
+
+::: 
+::: {.column width=33%}
+
+![](images/risk_manual_cl3.png){width=450 fig-alt="Screenshot of the lionfish interface showing the three cluster result. The projection shown is where there is a fairly clear separation the three clusters, along the direction of the largest spread of points."}
+
+![](images/risk_manual_cl5_2.png){width=450 fig-alt="Screenshot of the lionfish interface showing the five cluster result. The projection shown is where there is a fairly clear separation the four clusters, along the direction of the largest spread of points, but the fattest part of the pear shape has been divided into three. The clusters at the bottom and the top of the pear shape have been faded so we can focus on the three clusters in the fat part of the pear."}
+
+::: 
+::: {.column width=33%}
+
+::: {style="font-size: 80%;"}
+
+- Up to 3 clusters, clustering is along the main axis of variation (i.e. PC 1), which includes most of the different types of risks.
+- With 4-5 clusters it divides up medium values of some activities.
+:::
+
+:::
+
+::::
+
+## Case study: Australian tourism [(3/3)]{.smallest}
+
+:::: {.columns}
+
+::: {.column width=80%}
+
+::: {.f50}
+
+```{r}
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: 60%
+library(lionfish)
+data("risk")
+colnames(risk) <- c("Rec", "Hea", "Car", "Fin", "Saf", "Soc")
+risk_d  <- apply(risk, 2, function(x) (x-mean(x))/sd(x))
+
+# Two clusters
+nc <- 3
+set.seed(1145)
+r_km <- kmeans(risk_d, centers=nc,
+               iter.max = 500, nstart = 5)
+
+r_km_d <- risk |>
+  as_tibble() |>
+  mutate(cl = factor(r_km$cluster))
+
+r_km_d |> 
+  pivot_longer(Rec:Soc, names_to = "var", values_to = "val") |>
+  ggplot(aes(x=val, fill=cl)) +
+    geom_bar() +
+    facet_wrap(~var, ncol=3, scales="free_y") +
+    scale_fill_manual(values = c("#377EB8", "#FF7F00", "#4DAF4A")) +
+    xlab("") + ylab("") +
+    theme_minimal() +
+    theme(legend.position = "none",
+          axis.text = element_blank())
+```
+
+:::
+:::
+::: {.column width=20%}
+
+<br><br>All the activities contribute to the segmentation into three clusters.
+:::
+::::
+
+## {.information-slide .center style="text-align: center;"}
+
+Unsupervised learning provides a way to organise observations or variables into smaller sets. It can help to make big noisy data more digestible - *if done well*.
 
 ## Temporal data {.transition-slide .center style="text-align: center;"}
 
@@ -1850,6 +2198,7 @@ harvest_nomiss
 #| fig-width: 15
 #| fig-height: 10
 #| out-width: 100%
+#| code-fold: true
 ped_QV <-  pedestrian |>
   mutate(year = year(Date),
          month = month(Date)) |>
@@ -1867,6 +2216,7 @@ ggplot(ped_QV) +
 
 
 ```{r echo=TRUE}
+#| code-fold: true
 has_gaps(pedestrian, .full = TRUE)
 ped_gaps <- pedestrian |> 
   dplyr::filter(Sensor == "QV Market-Elizabeth St (West)") |>
@@ -1883,29 +2233,27 @@ ped_qvm_filled <- pedestrian |>
 
 There is a block of missing values on the last day of 2015. The other two missings correspond to an hour in April, when the clocks change from summer to regular time.
 
-```{r echo=TRUE}
-hol <- holiday_aus(2015:2016, state = "VIC")
-ped_qvm_filled <- ped_qvm_filled |> 
-  mutate(hol = is.weekend(Date)) |>
-  mutate(hol = if_else(Date %in% hol, TRUE, hol)) |>
-  mutate(Time = factor(Time))
-```
-
-```{r echo=TRUE, warning=FALSE}
-ped_qvm_lm <- lm(Count~Time*hol, data=ped_qvm_filled)
-```
-
-
-```{r echo=TRUE}
-ped_qvm_filled <- ped_qvm_filled |>
-  mutate(pCount = predict(ped_qvm_lm, ped_qvm_filled))
-```
+## Case study: pedestrian sensors [(3/3)]{.smallest}
 
 
 ```{r}
 #| fig-width: 15
 #| fig-height: 3
 #| out-width: 100%
+#| code-fold: true
+# Which days are holidays
+hol <- holiday_aus(2015:2016, state = "VIC")
+ped_qvm_filled <- ped_qvm_filled |> 
+  mutate(hol = is.weekend(Date)) |>
+  mutate(hol = if_else(Date %in% hol, TRUE, hol)) |>
+  mutate(Time = factor(Time))
+
+# Fit linear model to inpute missings
+ped_qvm_lm <- lm(Count~Time*hol, data=ped_qvm_filled)
+ped_qvm_filled <- ped_qvm_filled |>
+  mutate(pCount = predict(ped_qvm_lm, ped_qvm_filled))
+
+# Select subset and plot results
 ped_qvm_sub <- ped_qvm_filled |>
   filter(Date > ymd("2015-12-17"), Date < ymd("2016-01-01")) 
 ggplot(ped_qvm_sub) +   
@@ -1923,6 +2271,8 @@ ggplot(ped_qvm_sub) +
 #| fig-width: 5
 #| fig-height: 5
 #| out-width: 50%
+#| echo: false
+#| eval: false
 ggplot() +   
     geom_line(data=filter(ped_qvm_sub), 
               aes(x=Time, y=Count, group=Date)) +
@@ -1935,7 +2285,7 @@ ggplot() +
   facet_wrap(~hol) +
   theme(aspect.ratio = 1)
 ```
-## Case study: pedestrian sensors [(3/3)]{.smallest}
+
 
 ## {.information-slide .center style="text-align: center;"}
 

@@ -70,10 +70,22 @@ Monash University <br>
 
 ## Outline
 
+:::: columns
+::: column
+
 - Tidy data
 - Organising data into tidy form
 - Handling missing values
 - Reproducible projects
+- Data fusion
+
+:::
+::: column
+
+**Everything that you see in these slides can be reproduced using the code embedded in the slides.**
+
+:::
+::::
 
 ## Follow along
 
@@ -1432,15 +1444,6 @@ As shown in recent work [@smith2021], the method is effective.
 
 🔄 Quarto will automatically format the in-text citation and generate a reference list.
 
-<!-- ### 🔍 Tips -->
-
-<!-- * Download CSL files from [zotero.org/styles](https://www.zotero.org/styles) -->
-<!-- * You can also use reference managers (Zotero, Mendeley) to export `.bib` files. -->
-<!-- * Supports multiple `.bib` files if needed. -->
-
-<!-- ## More exercises on adding code chunks, equations, figures, and tables -->
-
-<!-- PDF and HTML versions, equations and figures cross-reference, code chunks (show and hide) -->
 
 ## ⚙️ Quarto quirks & power tips
 
@@ -1502,6 +1505,83 @@ Refer to another figure in a caption
 :::
 :::
 ::::
+
+## {.information-slide .center style="text-align: center;"}
+
+Open-source software is the powerhouse of our generation. Almost anything that you need to do with data, can be accomplished.
+
+## Data fusion {.transition-slide .center style="text-align: center;"}
+
+## Case study 1: Australian bushfires [1/3]{.smallest}
+
+:::: columns
+::: column
+
+Find all the code and data for this work at [https://github.com/TengMCing/bushfire-paper](https://github.com/TengMCing/bushfire-paper)
+
+**Purpose**: Predict the cause of bushfire ignitions in the catastrophic 2019-2020 season for Victoria.
+
+**Model**: random forest trained on historical cause data and linked data on climate, vegetation, distance from roads, campsites, fire stations
+
+**Data linked**: by geographic location of fires
+
+:::
+::: column
+
+::: {.fragment style="font-size: 70%;"}
+
+Data sourced from 
+
+- Hotspot data from the Himawari-8 satellite
+- Climate data from Bureau of Meteorology
+(BOM) and Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+- road map from a comprehensive open-source map Openstreetmap
+- vegetation from Australian Bureau of Agricultural and Resource Economics and Sciences
+- **historical fire origins (causes)**, fire stations and camping location from Department of
+Environment, Land, Water & Planning.
+
+:::
+:::
+::::
+
+## Case study 1: Australian bushfires [2/3]{.smallest}
+
+![](images/bushfire-data-summary.jpeg){fig-align="center"}
+
+## Case study 1: Australian bushfires [3/3]{.smallest}
+
+<iframe src="https://ebsmonash.shinyapps.io/VICfire/"> </iframe>
+
+## Case study 2: Australian ecotourism 
+
+:::: {.columns}
+::: {.column width=40%}
+
+::: {style="font-size: 70%;"}
+
+*Source*: [https://github.com/vahdatjavad/ecotourism](https://github.com/vahdatjavad/ecotourism)
+
+See the R package `ecotourism` on CRAN.
+
+*Data*:
+
+- **Atlas of Living Australia** occurrences of mantaray, glow worms, Gouldian finch and orchids
+- Regional records of **Australian tourism** quarterly summaries
+- **Weather** downloaded using the GSODR R package.
+
+:::
+:::
+
+::: {.column width=60%}
+
+![](images/ecotourism-datasets.png)
+
+:::
+::::
+
+## {.information-slide .center style="text-align: center;"}
+
+Open data is a golden resource for understanding the world around us.
 
 ## Resources
 
