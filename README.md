@@ -34,8 +34,7 @@ And setup code files: [libraries.R](libraries.R), [chunk_options_and_themes.R](c
 
 1. Make sure to have a reasonably recent version of [R](https://cran.r-project.org/) and [RStudio](https://posit.co/download/rstudio-desktop/).
 
-2. Install these R packages
-
+2. Install these R packages <br>
 ```
 install.packages(c("ggplot2", 
                    "tidyr", 
@@ -53,8 +52,12 @@ install.packages(c("ggplot2",
                    "conflicted"), 
                    dependencies=c("Depends", "Imports"))
 ```
-
+<br>
 3. Download the [application1.zip](application1.zip) file, `unzip` to your working directory.
+
+## To produce reproducible documents
+
+Install quarto by following the instructions [here](https://quarto.org/docs/get-started/).
 
 ## Resources
 

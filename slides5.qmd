@@ -30,7 +30,10 @@ source("chunk_options_and_themes.R")
 ## Outline
 
 - Foundations of interactivity
-- 
+- How to make interactive graphics
+- Graphical user interfaces (GUI)
+- Interactive tables
+- Animation
 - Institutional workflow
 - Wrapping up
 
@@ -751,7 +754,6 @@ cm3 <- ggplot() +
   theme_map() +
   theme(legend.position="bottom")
 cm3
-# ggplotly()
 ```
 :::
 :::
@@ -834,219 +836,15 @@ See latest [Table Contest](https://posit.co/blog/announcing-the-2025-table-and-p
 
 ## Animation {.transition-slide .center style="text-align: center;"}
 
-## Explanation
+## How and why
 
-- `gganimate` (Lin-Pederson) allows to make and save animations: [gganimate cheat sheet](https://rstudio.github.io/cheatsheets/gganimate.pdf)
-- Animations are different from interactive graphics in that the viewer does not have any control
-- useful for different important stages of a visualization (e.g. time) and to keep track of how different visualizations are related 
-- [can also be used in talks ]{.fragment}
+- The package `gganimate` (Lin-Pederson) allows one to make and save animations, based on building up from `ggplot2`.
+- Animations are different from interactive graphics in that the **viewer does not have any control**.
+- Useful for different important stages of a visualisation (e.g. time) and to keep track of how different visualisations are related 
+- Often good for talks and visual explanations
 
-## An example animation {.smaller}
+Try examples at [gganimate website](https://gganimate.com/articles/gganimate.html) and [Mitch, Ursula and Nick's NUMBAT tutorial](https://slides.mitchelloharawild.com/wombat-gganimate/).
 
-```{r}
-#| code-fold: true
-#| fig-width: 8
-#| fig-height: 6
-#| out-width: 80%
-#| eval: false
-ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
-  geom_point(alpha = 0.7) +
-  scale_colour_manual(values = country_colors) +
-  scale_size("Population size", range = c(2, 12), breaks=c(1*10^8, 2*10^8, 5*10^8, 10^9, 2*20^9)) +
-  scale_x_log10() +
-  guides(colour = "none") +
-  facet_wrap(~continent) +
-  theme(legend.position = "bottom") +
-  # Here comes the gganimate specific bits
-  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
-  gganimate::transition_time(year) +
-  gganimate::ease_aes('linear')
-```
-
-Countries are colored manually by `country_colors` (hue shows continent, saturation is individual country)
-
-## `gganimate`
-
-1. Start with a ggplot2 specification 
-2. Add layers with graphical primitives (geoms)
-3. Add formatting specifications
-4. Add animation specifications
-
-## A simple example {.smaller}
-
-1. Start by passing the data to ggplot
-
-```{r}
-#| label: plot1
-#| eval: true
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "1"
-ggplot(economics) #<<
-
-```
-
-::: bottom
-Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
-:::
-
-## A simple example {.smaller}
-
-2. add the mapping
-
-```{r}
-#| label: plot2
-#| eval: true
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "2"
-ggplot(economics) +
-  aes(date, unemploy) #<<
-```
-::: bottom
-Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
-:::
-
-
-## A simple example {.smaller}
-
-3. Add a graphical primitive, let's do a line 
-
-```{r}
-#| label: plot3
-#| eval: true
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "3"
-ggplot(economics) +
-  aes(date, unemploy) +
-  geom_line() #<<
-```
-
-
-::: bottom
-Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
-:::
-
-## A simple example {.smaller}
-
-
-4. Just one extra line turns this into an animation!
-
-```{r}
-#| label: plot5-anim
-#| eval: false
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "4"
-ggplot(economics) +
-  aes(date, unemploy) +
-  geom_line() +
-  transition_reveal(date) #<<
-```
-
-::: bottom
-Thanks to Mitch O'Hara Wild for the [example](https://github.com/numbats/gganimate-workshop)
-:::
-
-
-## A not-so-simple example {.smaller}
-
-Using the the datasaurus dozen, again, we first pass in the dataset to ggplot
-
-```{r}
-#| label: plot5
-#| eval: false
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "1"
-ggplot(datasaurus_dozen)#<<
-
-```
-
-## A not-so-simple example {.smaller}
-
-For each dataset we have x and y values, in addition we can map dataset to color
-
-```{r}
-#| label: plot6
-#| eval: false
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "2"
-ggplot(datasaurus_dozen) +
-  aes(x, y, color=dataset) #<<
-```
-
-## A not-so-simple example {.smaller}
-
-Trying a simple scatter plot first, but there is too much information
-
-
-```{r}
-#| label: plot7
-#| eval: false
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "3"
-ggplot(datasaurus_dozen) +
-  aes(x, y, color=dataset) +
-  geom_point() + #<<
-  xlim(c(0,100)) + ylim(c(0,100)) +
-  coord_equal() 
-```
-
-## A not-so-simple example {.smaller}
-
-We can use facets to split up by dataset, revealing the different distributions
-
-```{r}
-#| label: plot8
-#| eval: false
-#| code-fold: true
-#| fig-width: 8
-#| fig-height: 9
-#| out-width: 100%
-#| output-location: column
-#| code-line-numbers: "4"
-ggplot(datasaurus_dozen) +
-  aes(x, y, color=dataset) +
-  geom_point() +
-  facet_wrap(~dataset) + #<<
-  xlim(c(0,100)) + ylim(c(0,100)) +
-  coord_equal() +
-  theme(legend.position = "none")
-```
-
-## A not-so-simple example {.smaller}
-
-We can just as easily turn it into an animation, transitioning between dataset states! 
-
-```{r}
-#| label: plot9
-#| eval: false
-#| code-fold: true
-#| output-location: column
-#| code-line-numbers: "6,7"
-ggplot(datasaurus_dozen) +
-  aes(x, y) +
-  geom_point() +
-  xlim(c(0,100)) + ylim(c(0,100)) +
-  coord_equal() +
-  transition_states(dataset, 2, 3) + #<<
-  labs(title = "Dataset: {closest_state}") #<<
-
-```
-
-## Controlling an animation {.incremental .smaller}
-
-We control plot movement with (a grammar of animation):
-
-- Transitions: `transition_*()` define how the data should be spread out and how it relates to itself across time.
-- Views: `view_*()` defines how the positional scales should change along the animation.
-- Shadows: `shadow_*()` defines how data from other points in time should be presented in the given point in time.
-- Entrances/Exits: `enter_*()` and `exit_*()` define how new data should appear and how old data should disappear during the course of the animation.
-- Easing: `ease_aes()` defines how different aesthetics should be eased during transitions.
 
 ## Institutional workflow {.transition-slide .center style="text-align: center;"}
 
@@ -1084,6 +882,7 @@ Three sources of data:
 2. Reproducible reports
 3. Deployment
 
+:::
 ::: column
 
 Within organisation, maintain

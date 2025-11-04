@@ -29,7 +29,7 @@ source("chunk_options_and_themes.R")
 
 ## About the data
 
-https://github.com/horankev/quake_data
+[Indonesia earthquakes datasets](https://github.com/horankev/quake_data)
 
 ## Steps to take
 
@@ -37,9 +37,10 @@ https://github.com/horankev/quake_data
 2. Subset the data to contain only quakes in 2023, small enough to experiment with
 3. Make a map with earthquake locations plotted
 4. Make an interactive plot of magnitude and date
-5. Link the two plots so that a user can select points in one plot and examine where they are inthe other
+5. Link the two plots so that a user can select points in one plot and examine where they are in the other
 6. Develop an animation of earthquakes over time
 
+## Embed your best examples into a quarto document
 
 ## Resources
 
