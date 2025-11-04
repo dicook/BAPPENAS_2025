@@ -1200,7 +1200,7 @@ p1 + p2 + plot_layout(ncol=2)
 ```{r}
 #| code-fold: true
 #| fig-width: 10
-#| fig-height: 10
+#| fig-height: 8
 p1 <- ggplot(hotel_other, aes(x=children, y=lead_time)) +
   geom_boxplot()
 p2 <- ggplot(hotel_other, aes(x=children, y=stays_in_weekend_nights)) +
@@ -1235,7 +1235,7 @@ Since the outcome variable is categorical, logistic regression is a reasonable c
 ## model
 
 ```{r}
-#| code-fold: true
+#| code-fold: false
 lr_mod <- 
   logistic_reg(penalty = tune(), mixture = 1) |> 
   set_engine("glmnet")
