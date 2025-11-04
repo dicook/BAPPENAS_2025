@@ -356,11 +356,8 @@ are available in `crosstalk`.
 - `crosstalk`: that's what shiny is based on - we will look into shiny later
 - `plotly`: interactive javascript graphics (maintained Carson Sievert)
 - `leaflet`: (RStudio) allows to make interactive maps. Has been picking up users and has developed a stable user base.
-- `ggvis`: both static and interactive graphics, work on it has stalled ... (Wickham)
-- `animint2`: interactive, linked graphics with ggplot2 syntax (Toby Hocking)
--  `rCharts`, `rbokeh`, `gridSVG`, `epivizr`, `cranvas` previous approaches to packages with interactive graphics
-- see also [https://r-graph-gallery.com/interactive-charts.html](https://r-graph-gallery.com/interactive-charts.html) for additional packages (more specific)
-- and CRAN Task View [Dynamic Visualizations and Interactive Graphics](https://cran.r-project.org/web/views/DynamicVisualizations.html)
+- [https://r-graph-gallery.com/interactive-charts.html](https://r-graph-gallery.com/interactive-charts.html) 
+- and CRAN Task View [Dynamic Visualizations and Interactive Graphics](https://cran.r-project.org/web/views/DynamicVisualizations.html) for the most up-to-date information
 
 ## More examples with `plotly`
 
@@ -371,43 +368,50 @@ The `plotly` package in R has two interfaces:
 
 and creates interactive plots with `javascript`.
 
+:::: columns
+::: column
+
 ```{r}
 #| label: plotly
-#| warning: false
-#| message: false
 #| eval: false
-#| code-fold: true
+penguins_std <- penguins |>
+  rename(bl = bill_len,
+         bd = bill_dep,
+         fl = flipper_len,
+         bm = body_mass) |>
+  select(species, bl:bm) |>
+  na.omit()
+  
 plot_ly(data = penguins_std, 
         x = ~fl, 
         y = ~bl, 
         color = ~species, 
         size = 3, 
-        width=420, height=300)
+        width=600, height=450)
 ```
 
-## plotly 
+:::
+::: column
 
 ```{r}
-#| label: plotly-show
+#| label: plotly
 #| warning: false
 #| message: false
-#| code-fold: true
-#| eval: false
-plot_ly(data = penguins_std, 
-        x = ~fl, 
-        y = ~bl, 
-        color = ~species, 
-        size = 3, width=650, 
-        height=490, 
-        type="scatter", 
-        mode="markers")
+#| echo: false
 ```
+
+:::
+::::
+
 
 ## ggplot2 and plotly
 
+:::: columns
+::: column
+
 ```{r}
-#| message: false
-#| code-fold: true
+#| label: ggplot-plotly
+#| code-fold: false
 #| eval: false
 gg <- ggplot(data=penguins_std, aes(x = fl, 
                                     y = bl, 
@@ -417,13 +421,26 @@ gg <- ggplot(data=penguins_std, aes(x = fl,
 ggplotly(gg, width=600, height=490)
 ```
 
-## Maps {.smaller}
+:::
+::: column
+
+```{r}
+#| label: ggplot-plotly
+#| message: false
+#| echo: false
+```
+:::
+::::
+
+## Maps 
 
 ::: columns
 ::: column
+
 ```{r}
+#| label: plotly-map
 #| warning: false
-#| code-fold: true
+#| eval: false
 data(canada.cities, package = "maps")
 viz <- ggplot(canada.cities, aes(long, lat)) +
   borders(regions = "canada") +
@@ -431,14 +448,19 @@ viz <- ggplot(canada.cities, aes(long, lat)) +
   geom_point(aes(text = name, size = log2(pop)), 
              colour = "red", alpha = 1/4) +
   theme_map()
-```
-:::
-::: column
-```{r}
-#| code-fold: true
-#| out-width: 80%
 ggplotly(viz)
 ```
+
+:::
+
+::: column
+
+```{r}
+#| label: plotly-map
+#| warning: false
+#| echo: false
+```
+
 :::
 :::
 
@@ -446,16 +468,14 @@ Not all `ggplot2` geoms are supported in plotly, but when they are, they just wo
 
 
 
-## Modifying plotly {.smaller}
+## Modifying plotly 
 
 `plotly` uses elements of `crosstalk` to provide additional interactivity, such as linked highlighting
 
 
 ```{r}
-#| eval: true
-#| warning: false
-#| message: false
-#| code-fold: true
+#| label: plotly-modify
+#| eval: false
 txh_shared <- highlight_key(txhousing, ~year)
 
 p <- ggplot(txh_shared, aes(month, median)) +
@@ -469,26 +489,26 @@ p <- ggplot(txh_shared, aes(month, median)) +
                       labels = seq(0,3,1)) +
    facet_wrap(~ city)
 
-gg <- ggplotly(p, height = 750, width = 900) |>
+gg <- ggplotly(p, height = 800, width = 1100) |>
    plotly::layout(title = "Click on a line to highlight a year")
-```
 
-## {.smaller}
-
-```{r}
-#| code-fold: true
-#| warning: false
-#| message: false
-#| fig-height: 10
-#| fig-width: 12
-#| out-width: 50%
 highlight(gg)
 ```
 
-## The power of crosstalk {.smaller}
+## 
+
+```{r}
+#| label: plotly-modify
+#| warning: false
+#| message: false
+#| echo: false
+```
+
+## The power of crosstalk 
 
 :::: {.columns}
 ::: {.column width="80%"}
+
 ```{r}
 #| label: tsibbletalk1
 #| code-fold: true
@@ -516,22 +536,6 @@ p2 <- tourism_feat |>
         legend.title = element_text(family="Helvetica"),
         legend.text = element_text(family="Helvetica"),
         plot.title = element_text(family="Helvetica"))
-```
-:::
-::: {.column width="20%"}
-
-The shared data objects from `crosstalk` make linking between plots easier!
-
-:::
-::::
-
-## {.smaller}
-
-```{r}
-#| fig-height: 5
-#| fig-width: 10
-#| out-width: 90%
-#| code-fold: true
 subplot(
     ggplotly(p1, tooltip = "Region", width = 1200, height = 600) |>
   config(displayModeBar = FALSE),
@@ -539,11 +543,26 @@ subplot(
   config(displayModeBar = FALSE),
     nrows = 1, widths=c(0.5, 0.5), heights=1) |>
   highlight(dynamic = FALSE)
+
 ```
+:::
+::: {.column width="20%"}
 
-## Case study: mapping {.transition-slide .center style="text-align: center;"}
+Tourism records across Australian regions.
 
-## Constructing a choropleth
+The shared data objects from `crosstalk` make linking between plots easier!
+
+:::
+::::
+
+## Case study: mapping COVID in Victoria [(1/4)]{.smallest}
+
+:::: columns
+::: column
+
+::: {style="font-size: 70%;"}
+
+Constructing a choropleth
 
 ```{r}
 #| code-fold: true
@@ -600,13 +619,18 @@ save(lga_sm, file="data/lga_sm.rda")
 ggplot(lga_sm) + geom_sf() + theme_map()
 ```
 
-:::: {.columns}
-::: {.column width=70%}
+:::
+
+:::
+::: column
+
+::: {style="font-size: 70%;"}
 
 ```{r}
 #| code-fold: true
 #| fig-width: 8
 #| fig-height: 6
+#| out-width: 80%
 load("data/lga.rda")
 
 covid_tot <- covid |>
@@ -623,28 +647,38 @@ cm1 <- ggplot(covid_tot) +
   theme_map() +
   theme(legend.position="bottom")
 cm1
-# Make it interactive
-# plotly::ggplotly() 
+ 
 ```
+
 :::
-::: {.column width=30%}
-
-Numerical value of statistic is attached to the respective polygon.
-
-<br><br>
-But a problem, especially for Australia is that small geographic, but high population density, areas get lost.
 :::
 ::::
 
-## Making the small regions visible [(1/2)]{.f50}
+## Case study: mapping COVID in Victoria [(2/4)]{.smallest}
 
 :::: {.columns}
-::: {.column width=70%}
+::: {.column}
+
+::: {style="font-size: 70%;"}
+
+A cartogram expands a geographic are relative to the population in the area. 
+
+<br><br>
+See more on [cartograms here](https://go-cart.io/cartogram). 
+
+A better solution for Australia is needed, though.
+
+:::
+:::
+::: {.column}
+
+::: {style="font-size: 70%;"}
 
 ```{r}
 #| code-fold: true
 #| fig-width: 8
 #| fig-height: 6
+#| out-width: 80%
 pop <- read_xlsx("data/VIF2019_Population_Service_Ages_LGA_2036.xlsx", sheet=3, skip=13, col_names = FALSE) |>
   select(`...4`, `...22`) |>
   rename(lga = `...4`, pop=`...22`) |>
@@ -675,22 +709,18 @@ cm2 <- ggplot(covid_tot_carto) +
   theme(legend.position="bottom")  
 cm2 
 ```
+
 :::
-::: {.column width=30%}
 
-A cartogram expands a geographic are relative to the population in the area. 
-
-<br><br>
-See more on [cartograms here](https://go-cart.io/cartogram). 
-
-A better solution for Australia is needed, though.
 :::
 ::::
 
-## Making the small regions visible [(2/2)]{.f50}
+## Case study: mapping COVID in Victoria [(3/4)]{.smallest}
 
 :::: {.columns}
 ::: {.column width=70%}
+
+::: {style="font-size: 70%;"}
 
 ```{r}
 #| code-fold: true
@@ -723,7 +753,7 @@ cm3 <- ggplot() +
 cm3
 # ggplotly()
 ```
-
+:::
 :::
 
 ::: {.column width=30%}
@@ -733,9 +763,20 @@ Learn more about hexagon tiling that works better for Australia [here](https://s
 :::
 ::::
 
-## Adding interaction
+## Case study: mapping COVID in Victoria [(4/4)]{.smallest}
+
+:::: {.columns}
+::: {.column width=20%}
+
+Adding interaction
+
+:::
+::: {.column width=80%}
+
+::: {style="font-size: 70%;"}
 
 ::: {.panel-tabset}
+
 
 ## Choropleth
 
@@ -765,6 +806,10 @@ ggplotly(cm3, width=800, height=600) |>
 ```
 
 :::
+:::
+:::
+::::
+
 
 ## Tables {.transition-slide .center style="text-align: center;"}
 
@@ -781,9 +826,8 @@ ggplotly(cm3, width=800, height=600) |>
 :::
 ::: column
 
-::: {.fragment}
+
 See latest [Table Contest](https://posit.co/blog/announcing-the-2025-table-and-plotnine-contests/) for the most recent innovations in table contruction.
-:::
 
 :::
 ::::
