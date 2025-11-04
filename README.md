@@ -60,7 +60,9 @@ install.packages(c("ggplot2",
 
 The end of each slide set has references and links to more information.
 
-Copyright: Dianne Cook 2025
+<br>
+
+**Copyright: Dianne Cook 2025**
 
 These materials are licensed under a
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License][cc-by-nc-sa].
