@@ -19,14 +19,16 @@ We assume some familiarity with R, and will teach using R and Rstudio.
 
 ## Outline
 
-| Session | topic | description |
-|------:|:-------|:-------|
-| 1  | [Introduction, tidy data analysis and workflow](slides1.html) | This session covers key principles for handling large, complex datasets and tools, e.g. identifying data as in tidy format, or not, data cleaning and integration and how to build a robust workflow, that enables collaborative data analysis and reproducible reporting. |
-| 2  | [Data wrangling, and visualisation](slides2.html) | From data in tidy form to elegant graphics, using a grammar to make good visualisations, and identifying patterns and communicating evidence.|
-| 3  | [Statistical modeling and machine learning](slides3.html) | Extending the notion of tidy data to models provides a cleaner way to think about the process of prediction and interpretation. |
-| 4  | [Application 1](slides4.html) | Working with Indonesian economic data. |
-| 5  | Interactive and dynamic graphics | Here we learn how to visualise data beyond two dimensions, to assess relationships between many variables. |
-| 6  | Application 2 | Working with interactive plots for spatial and temporal data about Indonesia. |
+| Session | topic | description | source |
+|------:|:-------|:-------|:-------|
+| 1  | [Introduction, tidy data analysis and workflow](slides1.html) | This session covers key principles for handling large, complex datasets and tools, e.g. identifying data as in tidy format, or not, data cleaning and integration and how to build a robust workflow, that enables collaborative data analysis and reproducible reporting. | [R code](slides1.R), [quarto](slides1.qmd) |
+| 2  | [Data wrangling, and visualisation](slides2.html) | From data in tidy form to elegant graphics, using a grammar to make good visualisations, and identifying patterns and communicating evidence.| [R code](slides2.R), [quarto](slides2.qmd) |
+| 3  | [Statistical modeling and machine learning](slides3.html) | Extending the notion of tidy data to models provides a cleaner way to think about the process of prediction and interpretation. |  [R code](slides3.R), [quarto](slides3.qmd) |
+| 4  | [Application 1](slides4.html) | Working with Indonesian economic data. | [R code](slides4.R), [quarto](slides4.qmd) |
+| 5  | Interactive and dynamic graphics | Here we learn how to visualise data beyond two dimensions, to assess relationships between many variables. | [R code](slides5.R), [quarto](slides5.qmd) |
+| 6  | Application 2 | Working with interactive plots for spatial and temporal data about Indonesia. |  [R code](slides6.R), [quarto](slides6.qmd) |
+
+And setup code files: [libraries.R](libraries.R), [chunk_options_and_themes.R](chunk_options_and_themes.R). 
 
 ## To work on application 1
 
