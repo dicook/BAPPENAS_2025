@@ -1550,7 +1550,11 @@ Environment, Land, Water & Planning.
 
 ## Case study 1: Australian bushfires [3/3]{.smallest}
 
-<iframe src="https://ebsmonash.shinyapps.io/VICfire/"> </iframe>
+The app is at [https://ebsmonash.shinyapps.io/VICfire/](https://ebsmonash.shinyapps.io/VICfire/).
+
+```{r out.width="110%", echo=FALSE}
+knitr::include_app("https://ebsmonash.shinyapps.io/VICfire/", height = "550px") 
+```
 
 ## Case study 2: Australian ecotourism 
 

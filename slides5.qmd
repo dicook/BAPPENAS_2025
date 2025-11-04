@@ -27,6 +27,13 @@ source("libraries.R")
 source("chunk_options_and_themes.R")
 ```
 
+## Outline
+
+- Foundations of interactivity
+- 
+- Institutional workflow
+- Wrapping up
+
 ## Why interactive plots {.transition-slide .center style="text-align: center;"}
 
 ## Reasons 
@@ -41,9 +48,7 @@ source("chunk_options_and_themes.R")
 - [Too much information]{.monash-blue2} to present in a single plot, so provide multiple plots where the information is linked.
 - [Re-scale]{.monash-blue2} information to change the focus on-demand.
 
-**Interactivity** means the user can directly change aspects of the plot using mouse or keyboard controls.
 
-**Animation** is an alternative to interactivity that keeps control with the developer rather than the reader.
 :::
 
 :::
@@ -76,11 +81,24 @@ gp + geom_text() +
   ggtitle("Too cluttered")
 
 ```
+
 :::
 
-::: {.fragment}
 
-::: {style="font-size: 70%;"}
+:::
+
+::::
+
+## Considerations
+
+
+**Interactivity** means the user can directly change aspects of the plot using mouse or keyboard controls.
+
+**Animation** is an alternative to interactivity that keeps control with the developer rather than the reader.
+
+<br>
+
+::: {.fragment}
 
 **Keep in mind**
 
@@ -90,13 +108,15 @@ gp + geom_text() +
 
 :::
 
-:::
-
-:::
-
-::::
-
 ## Different types of interactivity {.transition-slide .center style="text-align: center;"}
+
+## Types
+
+- *mouse-over*: information shows as cursor moves over plot. This is the simplest and most commonly implemented. Information is [transient]{.monash-blue2}.
+- *selection*: items in plot selected using a click, rectangular or lasso area. Tends to be [persistent]{.monash-blue2} and remains visible when cursor moves.
+- *pan/zoom*: change the area of focus, to be smaller or larger. A more sophisticated system might allow logical pan/zoom to particular subsets. 
+- *linking*: multiple plots visible, selection on one provokes a reaction in the others also. A more sophisticated system allows selection using categorical variables, one-to-many or many-to-one linking. Allows relationships between many variables to be undeerstood.
+- *graphical user interface (GUI)*: indirect control, but precise using menus, slides, checkboxes, text entry. 
 
 ## Mouse-over
 
@@ -109,7 +129,7 @@ ggplotly(gp, width=700, height=550) |>
   config(displayModeBar = FALSE)
 ```
 
-Notice also the subsetting legend
+Notice also the subsetting legend.
 
 :::
 ::: {.column}
@@ -135,12 +155,81 @@ ggplotly(gp, width=700, height=550) |>
 :::
 ::: {.column}
 
-leaflet example
+::: {.fragment}
+
+::: {style="font-size: 80%;"}
+
+Life expectancy in 2007 from the [gapminder data](https://jennybc.github.io/gapminder/).
+
+```{r}
+#| code-fold: true
+# Filter gapminder data for a specific year (e.g., 2007)
+gapminder_2007 <- gapminder |>
+  filter(year == 2007) |>
+  select(country, lifeExp)
+
+# Get world map data
+world_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") |>
+  select(name, geometry)
+
+# Ensure the CRS is WGS 84 (Leaflet's requirement)
+world_sf <- st_transform(world_sf, crs = 4326)
+
+# Handle potential country name mismatches
+world_sf <- world_sf |>
+  mutate(name = recode(name, 
+                       "United States" = "United States of America",
+                       "Congo" = "Congo, Rep.",
+                       "Democratic Republic of Congo" = "Congo, Dem. Rep.",
+                       "Slovakia" = "Slovak Republic",
+                       "Myanmar" = "Burma",
+                       "Egypt" = "Egypt, Arab Rep.",
+                       "Yemen" = "Yemen, Rep."))
+
+# Merge the datasets
+map_data <- world_sf |>
+  left_join(gapminder_2007, by = c("name" = "country")) |>
+  # Remove countries with no life expectancy data in the chosen year
+  filter(!is.na(lifeExp))
+
+# Define a color palette
+pal <- colorNumeric("RdYlGn", domain = map_data$lifeExp)
+
+# Create the map
+leaflet(data = map_data) |>
+  addProviderTiles(providers$CartoDB.Positron) |> # Add a base map tile
+  addPolygons(
+    fillColor = ~pal(lifeExp),
+    weight = 1,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 3,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.9,
+      bringToFront = TRUE),
+    popup = ~paste0("<strong>", name, "</strong><br/>Life Expectancy: ", round(lifeExp, 2), " years") # Add interactive popups
+  ) |>
+  addLegend(pal = pal, values = ~lifeExp, opacity = 0.7, title = "Life Expectancy (Years)",
+            position = "bottomright")
+```
+
+:::
+
+:::
+
 
 :::
 ::::
 
 ## Selection
+
+::: {style="font-size: 70%;"}
+
+<center>
 
 ```{r}
 #| code-fold: true
@@ -148,7 +237,8 @@ leaflet example
 #| fig-height: 6
 set.seed(802)
 gapminder_ts <- gapminder |>
-  as_tsibble(index=year, key=c(country, continent)) |>
+  as_tsibble(index=year, 
+             key=c(country, continent)) |>
   sample_n_keys(50)
 gphk <- highlight_key(gapminder_ts, ~country)
 
@@ -157,19 +247,22 @@ gpl <- ggplot(gphk, aes(x=year,
                              group=country)) +
         geom_line() +
         ylab("Life Expectancy") +
-        ggtitle("Click on a line to highlight a country") +
+        ggtitle("click on a line to highlight a country") +
         theme(axis.title = element_text(family="Helvetica"),
           axis.text = element_text(family="Helvetica"),
           legend.title = element_text(family="Helvetica"),
           legend.text = element_text(family="Helvetica"),
           title = element_text(family="Helvetica"))
 
-ggpl <- ggplotly(gpl, height = 800, width = 1600) |>
+ggpl <- ggplotly(gpl, height = 700, width = 1200) |>
   config(displayModeBar = FALSE)
         
 highlight(ggpl)
         
 ```
+
+</center>
+:::
 
 ## Linking multiple plots
 
@@ -180,31 +273,34 @@ highlight(ggpl)
 gggs <- ggplot(gphk, aes(x=continent, y=country)) +
   geom_point() +
   xlab("") + ylab("") +
+  ggtitle("rectangular selection") +
   theme(axis.title = element_text(family="Helvetica"),
       axis.text = element_text(family="Helvetica"),
       legend.title = element_text(family="Helvetica"),
       legend.text = element_text(family="Helvetica"),
-      title = element_text(family="Helvetica"))
+      title = element_text(family="Helvetica")) 
 
 gggspl <- ggplotly(gggs, width=500, height=500) |>
   config(displayModeBar = FALSE) |>
   highlight(on = "plotly_selected", 
             off = "plotly_doubleclick") 
 
-ggpl2 <- ggplotly(gpl, height = 500, width = 1000) |>
+ggpl2 <- ggplotly(gpl, height = 500, width = 800) |>
   config(displayModeBar = FALSE) |>
   highlight(on = "plotly_selected", 
             off = "plotly_doubleclick") 
   
-bscols(gggspl, ggpl2, widths = c(5, 7))
+bscols(gggspl, highlight(ggpl2), widths = c(5, 7))
 ```
 
 ## Graphical user interface (GUI) control
 
+::: {style="font-size: 70%;"}
+
 ```{r}
 #| code-fold: true
-#| fig-width: 10
-#| fig-height: 8
+#| fig-width: 12
+#| fig-height: 10
 gpl <- ggplot(gphk, aes(x=year, 
                              y=lifeExp, 
                              group=country)) +
@@ -224,22 +320,26 @@ bscols(widths = c(4, 7),
   
 ```
 
+:::
+
 ## GUI elements
 
 :::: {.columns}
 ::: {.column width="80%"}
-[GUIs provide explicit control]{.darkpink2} over a small range of interactions. 
+[GUIs provide explicit control]{.monash-blue2} over a small range of interactions. 
 
-- Menu: for a medium number of categories
-- Slider: numeric values or range
-- Checkbox: for a small number of categories
+- **Menu**: for a medium number of categories
+- **Slider**: numeric values or range
+- **Checkbox**: for a small number of categories
+
+are available in `crosstalk`.
 
 :::
 ::: {.column width="20%"}
 
 <br>
 
-[Read more about crosstalk here.](https://rstudio.github.io/crosstalk/index.html)
+
 
 :::
 ::::
@@ -259,17 +359,17 @@ bscols(widths = c(4, 7),
 - `ggvis`: both static and interactive graphics, work on it has stalled ... (Wickham)
 - `animint2`: interactive, linked graphics with ggplot2 syntax (Toby Hocking)
 -  `rCharts`, `rbokeh`, `gridSVG`, `epivizr`, `cranvas` previous approaches to packages with interactive graphics
-- see also https://r-graph-gallery.com/interactive-charts.html for additional packages (more specific)
+- see also [https://r-graph-gallery.com/interactive-charts.html](https://r-graph-gallery.com/interactive-charts.html) for additional packages (more specific)
 - and CRAN Task View [Dynamic Visualizations and Interactive Graphics](https://cran.r-project.org/web/views/DynamicVisualizations.html)
 
-## plotly
+## More examples with `plotly`
 
 The `plotly` package in R has two interfaces:
 
 - plot specification via plotly
 - translating `ggplot2` plots and adding interactive elements
 
-Plotly creates interactive plots with javascript.
+and creates interactive plots with `javascript`.
 
 ```{r}
 #| label: plotly
@@ -369,7 +469,7 @@ p <- ggplot(txh_shared, aes(month, median)) +
                       labels = seq(0,3,1)) +
    facet_wrap(~ city)
 
-gg <- ggplotly(p, height = 750, width = 900) %>%
+gg <- ggplotly(p, height = 750, width = 900) |>
    plotly::layout(title = "Click on a line to highlight a year")
 ```
 
@@ -666,6 +766,27 @@ ggplotly(cm3, width=800, height=600) |>
 
 :::
 
+## Tables {.transition-slide .center style="text-align: center;"}
+
+## Resources
+
+:::: columns
+::: column
+
+- [reactable](https://glin.github.io/reactable/index.html) 
+- [DT](https://rstudio.github.io/DT/)
+- [gt](https://gt.rstudio.com/articles/gt.html)
+- [kable](https://bookdown.org/yihui/rmarkdown-cookbook/kable.html) (for both html and pdf output) and [kableExtra](https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html)
+
+:::
+::: column
+
+::: {.fragment}
+See latest [Table Contest](https://posit.co/blog/announcing-the-2025-table-and-plotnine-contests/) for the most recent innovations in table contruction.
+:::
+
+:::
+::::
 
 ## Animation {.transition-slide .center style="text-align: center;"}
 
@@ -883,12 +1004,60 @@ We control plot movement with (a grammar of animation):
 - Entrances/Exits: `enter_*()` and `exit_*()` define how new data should appear and how old data should disappear during the course of the animation.
 - Easing: `ease_aes()` defines how different aesthetics should be eased during transitions.
 
+## Institutional workflow {.transition-slide .center style="text-align: center;"}
+
+## Example: United States Department of Agriculture
+
+:::: columns
+::: column
+
+Three apps, to communicate information about soybean breeding in the USA:
+
+- [http://shiny.soybase.org/CNV/](http://shiny.soybase.org/CNV/) (2Gb of analysis files, annotations)
+- [http://shiny.soybase.org/SNP/](http://shiny.soybase.org/SNP/) (12Gb of data, 20mill SNPs, 1mil locations, 79 lines)
+[http://shiny.soybase.org/Genealogy/](http://shiny.soybase.org/Genealogy)
+
+Continuously deployed for more than a decade!
+
+:::
+::: column
+
+Three sources of data:
+
+- Next-generation sequencing DNA-seq on 79 lines: DNA sequencing libraries were prepared using TruSeq DNA sample prep and NuGENs unamplified prep kits (Illumina Inc., San Diego, CA and NuGEN Technologies Inc., San Carlos, CA). 
+- Field yield trials: 30/79 + 138 ancestral lines
+- Breeding literature, what lines were bred to produce what line
+
+:::
+::::
+
+## Process
+
+:::: columns
+::: column
+
+1. Connection to database
+2. Reproducible reports
+3. Deployment
+
+::: column
+
+Within organisation, maintain
+
+- Github repos for versioning content and sharing locally developed packages, templates for document styling, eg [monash templates](https://github.com/quarto-monash), [teaching](https://ddde.numbat.space/)
+- (optional) local CRAN-like package server
+- shiny server for app delivery, eg Monash EBS (shown in session )
+
+:::
+::::
 
 ## Resources
 
-- plotly
-- gganimate
-- crosstalk
+- Overview of R packages for interactive plots is at a [CRAN Task Views](https://cran.r-project.org/web/views/DynamicVisualizations.html)
+- [plotly](https://plotly.com/r/) for adding interactivity to [ggplot2](https://ggplot2.tidyverse.org/) plots
+- [crosstalk](https://rstudio.github.io/crosstalk/index.html) for linking multiple plots
+- [gganimate](https://gganimate.com/) to make animations
+
 
 ::: bottom
 <span style="display:inline-block;"><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a></span><span style="display:inline-block;"> This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.</span>

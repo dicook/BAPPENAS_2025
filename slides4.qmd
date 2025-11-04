@@ -483,10 +483,9 @@ osiris_sub_smry |>
 
 ## Resources
 
+- [tidyverse](https://tidyverse.org/)
 - [tidymodels.org](https://www.tidymodels.org/)
 - [Tidy Modeling with R](https://www.tmwr.org/)
-- [Tidy Text](https://www.tidytextmining.com/)
-- [Interpretable Machine Learning](https://christophm.github.io/interpretable-ml-book/)
 - [Forecasting: Principles and Practice (3e)](https://otexts.com/fpp3/)
 
 ::: bottom
