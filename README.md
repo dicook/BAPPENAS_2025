@@ -56,11 +56,7 @@ install.packages(c("ggplot2",
 
 ## Resources
 
-- Wickham, Cetinskaya-Rundell, Grolemund (2023) [R for Data Science (2e)](https://r4ds.hadley.nz)
-- [tidymodels website](https://www.tidymodels.org)
-- [Wilke (2019) Fundamentals of Data Visualization](https://clauswilke.com/dataviz/)
-- [Happy Git and GitHub for the useR](https://happygitwithr.com)
-- [The Turing Way](https://book.the-turing-way.org/)
+The end of each slide set has references and links to more information.
 
 Copyright: Dianne Cook 2025
 
