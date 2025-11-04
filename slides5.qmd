@@ -446,9 +446,9 @@ ggplotly(gg, width=600, height=490)
 #| eval: false
 data(canada.cities, package = "maps")
 viz <- ggplot(canada.cities, aes(long, lat)) +
-  borders(regions = "canada") +
+  annotation_borders(regions = "canada") +
   coord_equal() +
-  geom_point(aes(text = name, size = log2(pop)), 
+  geom_point(aes(label = name, size = log2(pop)), 
              colour = "red", alpha = 1/4) +
   theme_map()
 ggplotly(viz)
