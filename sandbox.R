@@ -204,7 +204,19 @@ ggplot(osiris_sub,
   stat_summary(colour="red") +
   scale_y_log10() +
   facet_wrap(~industry, ncol=5, scales="free_y") +
-  theme(axis.text = element_blank())
+  theme(axis.text.y = element_blank())
+
+ggplot(osiris_sub,
+       aes(x=assets,
+           y=revenues,
+           colour=pandemic)) +
+  #geom_point(alpha=0.5) +
+  geom_smooth(method="lm", se=F) +
+  scale_y_log10() +
+  scale_x_log10() +
+  scale_colour_brewer("", palette="Dark2") +
+  facet_wrap(~industry, ncol=6, scales="free") +
+  theme(aspect.ratio = 1, axis.text = element_blank())
 
 ## ------------------------------------------------------
 osiris_accom <- osiris_sub |>
