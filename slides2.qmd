@@ -1342,6 +1342,8 @@ The big change from working with maps in a GIS and maps for data analysis is the
 
 We are going to demonstrate how you need to change your approach, using the code in `map.R`.
 
+The shapefiles for this example are downloaded from [https://imcarto.webflow.io/gdb](https://drive.google.com/file/d/1pYYMFtB6rZXiuZtysahr78Foy3n3KRQ3/view). It is the "Province" data for Indonesian Administrative boundaries.
+
 ## Displaying statistics with a map
 
 :::: {.columns}

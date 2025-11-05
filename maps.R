@@ -2,6 +2,7 @@ library(sf)
 library(ggplot2)
 library(ggthemes)
 
+# Downloaded from https://drive.google.com/file/d/1pYYMFtB6rZXiuZtysahr78Foy3n3KRQ3/view
 imap <- read_sf("data/batas_prov")
 ggplot(imap) + geom_sf()
 # Note 28Mb and takes minutes to render
