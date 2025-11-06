@@ -26,7 +26,7 @@ We assume some familiarity with R, and will teach using R and Rstudio.
 | 3  | [Statistical modeling and machine learning](slides3.html) | Extending the notion of tidy data to models provides a cleaner way to think about the process of prediction and interpretation. |  [R code](slides3.R), [quarto](slides3.qmd) |
 | 4  | [Application 1](slides4.html) | Working with Indonesian economic data. | [R code](slides4.R), [quarto](slides4.qmd) |
 | 5  | [Interactive and dynamic graphics](slides5.html) | Here we learn how to visualise data beyond two dimensions, to assess relationships between many variables. | [R code](slides5.R), [quarto](slides5.qmd) |
-| 6  | [Application 2](slides6.html) | [Working with interactive plots for spatial and temporal data about Indonesia.](slides6.html) |  [R code](slides6.R), [quarto](slides6.qmd) |
+| 6  | [Application 2](slides6.html) | Working with interactive plots for spatial and temporal data about Indonesia. |  [R code](slides6.R), [quarto](slides6.qmd) |
 
 And setup code files: [libraries.R](libraries.R), [chunk_options_and_themes.R](chunk_options_and_themes.R). 
 
